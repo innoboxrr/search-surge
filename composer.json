@@ -1,0 +1,28 @@
+{
+    "name": "desar/search-surge",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Desar\\SearchSurge\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Homero Raul",
+            "email": "h.raulvc@gmail.com"
+        }
+    ],
+    "minimum-stability": "dev",
+    "require": {},
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Desar\\SearchSurge\\Providers\\SearchSurgeServiceProvider"
+            ],
+            "aliases": {
+                "SearchSurge": "Desar\\SearchSurge\\Facades\\SearchSurge"
+            }
+        }
+    }
+}
