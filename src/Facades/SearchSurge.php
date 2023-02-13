@@ -1,6 +1,6 @@
 <?php
 
-namespace Desar\SearchSurge\Facades;
+namespace Innoboxrr\SearchSurge\Facades;
 
 use Illuminate\Support\Facades\Facade;
 

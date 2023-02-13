@@ -6,5 +6,5 @@ $vendorDir = dirname(__DIR__);
 $baseDir = dirname($vendorDir);
 
 return array(
-    'Desar\\SearchSurge\\' => array($baseDir . '/src'),
+    'Innoboxrr\\SearchSurge\\' => array($baseDir . '/src'),
 );

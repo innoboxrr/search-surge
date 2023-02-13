@@ -1,6 +1,6 @@
 <?php
 
-namespace Desar\SearchSurge\Search\Utils;
+namespace Innoboxrr\SearchSurge\Search\Utils;
 
 use Illuminate\Database\Eloquent\Builder;
 

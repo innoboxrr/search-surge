@@ -1,10 +1,10 @@
 {
-    "name": "desar/search-surge",
+    "name": "innoboxrr/search-surge",
     "type": "library",
     "license": "MIT",
     "autoload": {
         "psr-4": {
-            "Desar\\SearchSurge\\": "src/"
+            "Innoboxrr\\SearchSurge\\": "src/"
         }
     },
     "authors": [
@@ -18,10 +18,10 @@
     "extra": {
         "laravel": {
             "providers": [
-                "Desar\\SearchSurge\\Providers\\SearchSurgeServiceProvider"
+                "Innoboxrr\\SearchSurge\\Providers\\SearchSurgeServiceProvider"
             ],
             "aliases": {
-                "SearchSurge": "Desar\\SearchSurge\\Facades\\SearchSurge"
+                "SearchSurge": "Innoboxrr\\SearchSurge\\Facades\\SearchSurge"
             }
         }
     }

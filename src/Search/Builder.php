@@ -1,6 +1,6 @@
 <?php
 
-namespace Desar\SearchSurge\Search;
+namespace Innoboxrr\SearchSurge\Search;
 
 use Illuminate\Http\Request;
 

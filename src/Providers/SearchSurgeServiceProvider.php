@@ -1,9 +1,9 @@
 <?php
 
-namespace Desar\SearchSurge\Providers;
+namespace Innoboxrr\SearchSurge\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use Desar\SearchSurge\Search\Builder;
+use Innoboxrr\SearchSurge\Search\Builder;
 
 class SearchSurgeServiceProvider extends ServiceProvider
 {
