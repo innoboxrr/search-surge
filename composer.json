@@ -2,6 +2,7 @@
     "name": "innoboxrr/search-surge",
     "type": "library",
     "license": "MIT",
+    "version": "1.0.0",
     "autoload": {
         "psr-4": {
             "Innoboxrr\\SearchSurge\\": "src/"
