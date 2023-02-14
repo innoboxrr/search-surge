@@ -7,6 +7,11 @@
             "Innoboxrr\\SearchSurge\\": "src/"
         }
     },
+    "autoload-dev": {
+        "psr-4": {
+            "Innoboxrr\\SearchSurge\\Tests\\": "tests/"
+        }
+    },
     "authors": [
         {
             "name": "Homero Raul",
@@ -14,7 +19,6 @@
         }
     ],
     "minimum-stability": "dev",
-    "require": {},
     "extra": {
         "laravel": {
             "providers": [
@@ -24,5 +28,9 @@
                 "SearchSurge": "Innoboxrr\\SearchSurge\\Facades\\SearchSurge"
             }
         }
+    },
+    "require-dev": {
+        "orchestra/testbench": "^7.0",
+        "phpunit/phpunit": "^9.5"
     }
 }

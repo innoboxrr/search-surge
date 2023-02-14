@@ -80,6 +80,13 @@ class Builder
 		$this->filtersRealPath = app_path($this->filtersPath . '/' . $this->modelName);
 
 	}
+	
+	protected function setFiltersNamespace($filtersNamespace)
+	{
+		
+		$this->filtersNamespace = $filtersNamespace;
+
+	}
 
 	protected function setFilters()
 	{
