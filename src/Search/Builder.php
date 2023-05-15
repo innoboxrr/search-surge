@@ -17,7 +17,7 @@ class Builder
 
 	protected $filters;
 
-	protected $filtersPath = 'Models\Filters';
+	protected $filtersPath = 'app\Models\Filters';
 
 	protected $filtersRealPath;
 
@@ -34,15 +34,17 @@ class Builder
 
 		if(array_key_exists('filtersPath', $options)) {
 
-			$this->setFiltersPath($options['filtersPath']);
+			$this->filtersPath = $options['filtersPath'];
 
 		}
 
 		if(array_key_exists('filtersNamespace', $options)) {
 
-			$this->setFiltersNamespace($options['filtersNamespace']);
+			$this->filtersNamespace = $options['filtersNamespace'];
 
 		}
+
+		return $this;
 
 	}
 
@@ -51,12 +53,25 @@ class Builder
 
 		$this->modelClass = app($model);
 
+		return $this;
+
 	}
 
 	protected function setModelName()
 	{
 
 		$this->modelName = basename(str_replace('\\', '/', get_class($this->modelClass)));
+
+		return $this;
+
+	}
+
+	protected function setFiltersRealPath()
+	{
+
+		$this->filtersRealPath = base_path($this->filtersPath . '/' . $this->modelName);
+
+		return $this;
 
 	}
 
@@ -65,55 +80,37 @@ class Builder
 
 		$this->modelQuery = $this->modelClass->newQuery();
 
-	}
-
-	protected function setFiltersPath($path)
-	{
-		
-		$this->filtersPath = $path;
-
-	}
-
-	protected function setFiltersRealPath()
-	{
-
-		$this->filtersRealPath = app_path($this->filtersPath . '/' . $this->modelName);
-
-	}
-	
-	protected function setFiltersNamespace($filtersNamespace)
-	{
-		
-		$this->filtersNamespace = $filtersNamespace;
+		return $this;
 
 	}
 
 	protected function setFilters()
 	{
+	    $this->filters = $this->getCleanFilters();
 
-		// Arreglo para almacenar el nombre de los filtros
-		$filtersNames = [];
+	    return $this;
+	}
 
-		// Verificar que el directorio que deseamos inspeccionar exista
-		if(file_exists($this->filtersRealPath)){
+	private function getCleanFilters(): array
+	{
+	    $filtersNames = [];
 
-			// Recuperar en un arreglo todos los filtros disponibles en el directorio
-			$allFilters = scandir($this->filtersRealPath);
+	    if(file_exists($this->filtersRealPath)){
 
-			// Quitar del arreglo ./ y ../
-			$filters = array_diff($allFilters, array('.', '..'));
+	        $allFilters = scandir($this->filtersRealPath);
+	        
+	        $filters = array_diff($allFilters, array('.', '..'));
 
-			// Colcar cada filtro en el arreglo $filtersNames
-			foreach ($filters as $key => $filter) {
+	        foreach ($filters as $key => $filter) {
+	        
+	            $filtersNames[] = preg_replace('/\\.[^.\\s]{3,4}$/', '', $filter);
+	        
+	        }
 
-				$filtersNames[] = preg_replace('/\\.[^.\\s]{3,4}$/', '', $filter);
+	    }
 
-			}
-
-		}
-
-		$this->filters = $filtersNames;
-
+	    return $filtersNames;
+	
 	}
 
 	protected function setRequest(Request $request)
@@ -126,26 +123,7 @@ class Builder
         	'managedFilterClass' => $this->filtersNamespace . '\\' . $this->modelName . '\ManagedFilter'
         ]);
 
-	}
-
-	protected function setEnv(string $model, Request $request, array $options = [])
-	{
-
-		$this->setOptions($options);
-
-		$this->setModelClass($model);
-
-		$this->setModelName();
-
-		$this->setFiltersRealPath();
-
-		$this->setModelQuery();
-
-		$this->setFilters();
-
-		$this->setRequest($request);
-
-		return $this;
+        return $this;
 
 	}
 
@@ -172,7 +150,7 @@ class Builder
 
 	}
 
-	private function paginate()
+	private function executeSearch()
 	{
 
 		return ($this->request->paginate === 0 || $this->request->paginate == '0') ? 
@@ -186,9 +164,15 @@ class Builder
 	public function get(string $model, Request $request, array $options = [])
 	{
 
-		return $this->setEnv($model, $request, $options)
+		return $this->setOptions($options)
+			->setModelClass($model)
+			->setModelName()
+			->setFiltersRealPath()
+			->setModelQuery()
+			->setFilters()
+			->setRequest($request)
 			->applyFilters()
-			->paginate();
+			->executeSearch();
 
 	}
 
