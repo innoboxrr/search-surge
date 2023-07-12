@@ -89,7 +89,9 @@ class Builder
     private function applyFilters()
     {
         foreach ($this->filters as $key => $filter) {
-            $filter = $this->filtersNamespace . DIRECTORY_SEPARATOR . $this->modelName . DIRECTORY_SEPARATOR . str_replace('\\', DIRECTORY_SEPARATOR, $filter);
+            
+            $filter = $this->filtersNamespace . '\\' . $this->modelName .  '\\'. $filter;
+            
             if (class_exists($filter)) {
                 $this->modelQuery = $filter::apply($this->modelQuery, $this->request);
             }
