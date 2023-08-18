@@ -1,5 +1,4 @@
 # .gitignore.dist
 /vendor
 /build
-
 # .gitignore

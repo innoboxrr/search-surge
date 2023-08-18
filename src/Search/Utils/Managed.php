@@ -7,26 +7,26 @@ use Illuminate\Database\Eloquent\Builder;
 class Managed
 {
 
-	public static function apply(Builder $query, $request)
+	public static function apply(Builder $query, $data)
     {  
 
         // 1. Primero debemos ver si se requiere las entidades administrables por el usuario
-        if (auth()->check() && $request->managed == true) {
+        if (auth()->check() && $data->managed == true) {
 
             // Depués debemos verificar si se requiere hacer una excepción para los que puedan ver todas
-            if($request->except_view_any == true) {
+            if($data->except_view_any == true) {
 
                 // Si el usuario no puede ver todas, limitar a las que puede administrar
-                if(auth()->user()->cant('viewAny', $request->model)) {
+                if(auth()->user()->cant('viewAny', $data->model)) {
 
-                    $query = self::canViewConstraint($query, auth()->user(), $request);
+                    $query = self::canViewConstraint($query, auth()->user(), $data);
 
                 }
 
             // En caso de que no se requiera hacer la excepción de todas formas hacer la restricción
             } else {
 
-                $query = self::canViewConstraint($query, auth()->user(), $request);
+                $query = self::canViewConstraint($query, auth()->user(), $data);
 
             }
 
@@ -36,14 +36,14 @@ class Managed
 
     }
 
-    public static function canViewConstraint($query, $user, $request) 
+    public static function canViewConstraint($query, $user, $data) 
     {
 
-        $filter = $request->managedFilterClass;
+        $filter = $data->managedFilterClass;
 
         if(class_exists($filter)) {
 
-            $query = $filter::canView($query, auth()->user(), $request->all());
+            $query = $filter::canView($query, auth()->user(), $data->all());
 
         }
 

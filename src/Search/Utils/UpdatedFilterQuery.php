@@ -8,44 +8,44 @@ use Carbon\Carbon;
 class UpdatedFilterQuery
 {
 
-	public static function sort(Builder $query, $request)
+	public static function sort(Builder $query, $data)
 	{
 
-		if ($request->updated_at) {
+		if ($data->updated_at) {
 
-            $date = Carbon::parse($request->updated_at);
+            $date = Carbon::parse($data->updated_at);
 
-            if($request->operator == '>') {
+            if($data->operator == '>') {
 
                 $query->whereDate('updated_at', '>', $date);
 
             }
 
-            if($request->operator == '>=') {
+            if($data->operator == '>=') {
 
                 $query->whereDate('updated_at', '>=', $date);
 
             }
         
-            if($request->operator == '<') {
+            if($data->operator == '<') {
 
                 $query->whereDate('updated_at', '<', $date);
 
             }
 
-            if($request->operator == '<=') {
+            if($data->operator == '<=') {
 
                 $query->whereDate('updated_at', '<=', $date);
 
             }
 
-            if($request->operator == '==') {
+            if($data->operator == '==') {
 
                 $query->whereDate('updated_at', '=', $date);
 
             }
 
-            if($request->operator == '!=') {
+            if($data->operator == '!=') {
 
                 $query->whereDate('updated_at', '!=', $date);
 
@@ -53,11 +53,11 @@ class UpdatedFilterQuery
 
         }
 
-        if($request->updated_at_start_date && $request->updated_at_end_date) {
+        if($data->updated_at_start_date && $data->updated_at_end_date) {
 
-            $updated_at_start_date = Carbon::parse($request->updated_at_start_date);
+            $updated_at_start_date = Carbon::parse($data->updated_at_start_date);
 
-            $updated_at_end_date = Carbon::parse($request->updated_at_end_date);
+            $updated_at_end_date = Carbon::parse($data->updated_at_end_date);
 
             $query->whereDate('updated_at', '>=', $updated_at_start_date)->whereDate('updated_at', '<=', $updated_at_end_date);
 

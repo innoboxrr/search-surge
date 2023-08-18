@@ -4,6 +4,10 @@ namespace Innoboxrr\SearchSurge\Tests;
 
 use Innoboxrr\SearchSurge\Search\Builder;
 use Innoboxrr\SearchSurge\Providers\SearchSurgeServiceProvider;
+use Innoboxrr\SearchSurge\Tests\Models\TestModel;
+
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\Schema\Blueprint;
 
 class TestCase extends \Orchestra\Testbench\TestCase
 {
@@ -13,8 +17,14 @@ class TestCase extends \Orchestra\Testbench\TestCase
         
         parent::setUp();
 
-        // additional setup
-        $this->builder = new Builder();
+        $this->app->bind(TestModel::class, function ($app) {
+            return new TestModel();
+        });
+
+        Schema::create('test_models', function (Blueprint $table) {
+            $table->id();
+            // Define otros campos aquí
+        });
 
     }
 

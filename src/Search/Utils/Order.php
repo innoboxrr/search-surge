@@ -12,12 +12,12 @@ Class Order
 	 * orderMode = 'asc' | ' desc'
 	 */
 
-    public static function orderBy(Builder $query, $request, $column)
+    public static function orderBy(Builder $query, $data, $column)
     {
 
-        if ($request->has('orderBy') && $request->orderBy == $column) {
+        if ($data->has('orderBy') && $data->orderBy == $column) {
 
-            $orderMode = ($request->orderMode == 'desc') ? 'desc' : 'asc';
+            $orderMode = ($data->orderMode == 'desc') ? 'desc' : 'asc';
 
             $query->orderBy($column, $orderMode);
 

@@ -8,44 +8,44 @@ use Carbon\Carbon;
 class CreationFilterQuery
 {
 
-	public static function sort(Builder $query, $request)
+	public static function sort(Builder $query, $data)
 	{
 
-		if ($request->created_at) {
+		if ($data->created_at) {
 
-            $date = Carbon::parse($request->created_at);
+            $date = Carbon::parse($data->created_at);
 
-            if($request->operator == '>') {
+            if($data->operator == '>') {
 
                 $query->whereDate('created_at', '>', $date);
 
             }
 
-            if($request->operator == '>=') {
+            if($data->operator == '>=') {
 
                 $query->whereDate('created_at', '>=', $date);
 
             }
         
-            if($request->operator == '<') {
+            if($data->operator == '<') {
 
                 $query->whereDate('created_at', '<', $date);
 
             }
 
-            if($request->operator == '<=') {
+            if($data->operator == '<=') {
 
                 $query->whereDate('created_at', '<=', $date);
 
             }
 
-            if($request->operator == '==') {
+            if($data->operator == '==') {
 
                 $query->whereDate('created_at', '=', $date);
 
             }
 
-            if($request->operator == '!=') {
+            if($data->operator == '!=') {
 
                 $query->whereDate('created_at', '!=', $date);
 
@@ -53,11 +53,11 @@ class CreationFilterQuery
 
         }
 
-        if($request->created_at_start_date && $request->created_at_end_date) {
+        if($data->created_at_start_date && $data->created_at_end_date) {
 
-            $created_at_start_date = Carbon::parse($request->created_at_start_date);
+            $created_at_start_date = Carbon::parse($data->created_at_start_date);
 
-            $created_at_end_date = Carbon::parse($request->created_at_end_date);
+            $created_at_end_date = Carbon::parse($data->created_at_end_date);
 
             $query->whereDate('created_at', '>=', $created_at_start_date)
             	->whereDate('created_at', '<=', $created_at_end_date);
