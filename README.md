@@ -10,6 +10,18 @@ Puedes instalar el paquete a través de composer:
 composer require innoboxrr/search-surge
 \`\`\`
 
+## Upgrade 
+
+### V1.0 -> V2.0
+
+- En la versión 2.0 se ha eliminado toda referencia a la instancia de request para pasar los datos, en su lugar se espera que se pase un arreglo con las restricciones.
+- Para disminuir la fricción que esto pueda generar básicamente son 2 lugars que se deben cambiar, que es al momento de llamar el método get, donde en ligar de pasar el request debes pasrar un arreglo, que igual puedes declarar con ``$request->all()``
+- El otro lugar donde debes cambiar esto es en los filtros en el método apply(Builder $builder, array $data)
+
+Posteriormente se puede seguir llamando a $data como un objeto para llamar las propiedades tal como se hacía con request.
+
+
+
 ## Uso
 
 La clase principal de este paquete es `Innoboxrr\SearchSurge\Search\Builder`. Así es como puedes usarla:
