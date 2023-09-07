@@ -17,7 +17,7 @@ class Managed
             if($data->except_view_any == true) {
 
                 // Si el usuario no puede ver todas, limitar a las que puede administrar
-                if(auth()->user()->cant('viewAny', $data->model)) {
+                if(auth()->user()->cant('viewAny', get_class($data->modelClass))) {
 
                     $query = self::canViewConstraint($query, auth()->user(), $data);
 

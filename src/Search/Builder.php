@@ -6,7 +6,7 @@ use Innoboxrr\SearchSurge\Search\Support\DataContainer;
 
 class Builder
 {
-	
+    
     /** Start params */
 
         protected $basePath;
@@ -182,6 +182,7 @@ class Builder
 
             $customData = [
                 'model' => $this->modelName,
+                'modelClass' => $this->modelClass,
                 'filtersRealPath' => $this->filtersRealPath,
                 'filtersNamespace' => $this->filtersNamespace,
                 'managedFilterClass' => $this->filtersNamespace . '\\' . $this->modelName . '\ManagedFilter',
