@@ -33,4 +33,9 @@ class DataContainer
     
     }
 
+    public function all()
+    {
+        return $this->data;
+    }
+
 }
