@@ -108,7 +108,7 @@ class Builder
         protected function setFiltersRealPath(): self
         {
             
-            $basePath = $this->basePath ?? base_path();
+            $basePath = $this->basePath ?? base_path() . DIRECTORY_SEPARATOR;
 
             $this->filtersRealPath = $basePath . ($this->filtersPath . DIRECTORY_SEPARATOR . $this->modelName);
             
