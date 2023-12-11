@@ -37,7 +37,7 @@ class Builder
          * @param array $options Opciones a configurar
          * @return self
          */
-        protected function setOptions($options = []): self
+        public function setOptions($options = []): self
         {
             
             if (array_key_exists('filtersPath', $options)) {
