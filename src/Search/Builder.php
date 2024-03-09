@@ -3,6 +3,8 @@
 namespace Innoboxrr\SearchSurge\Search;
 
 use Innoboxrr\SearchSurge\Search\Support\DataContainer;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 
 class Builder
 {
@@ -150,26 +152,32 @@ class Builder
          */
         private function getCleanFilters(): array
         {
-            
-            $filtersNames = [];
+            // Incluye el nombre del modelo en la clave del caché para diferenciar los conjuntos de filtros
+            $cacheKey = 'filters_names_for_' . $this->modelName;
 
-            if (file_exists($this->filtersRealPath)) {
+            // Determina la duración del caché, por ejemplo, 24 horas
+            $cacheDuration = 60 * 24; // 1440 minutos = 24 horas
 
-                $allFilters = scandir($this->filtersRealPath);
+            // Intenta obtener los nombres de los filtros desde el caché
+            $filtersNames = Cache::remember($cacheKey, $cacheDuration, function () {
+                $filtersNames = [];
 
-                $filters = array_diff($allFilters, ['.', '..']);
+                if (file_exists($this->filtersRealPath)) {
+                    $allFilters = scandir($this->filtersRealPath);
+                    $filters = array_diff($allFilters, ['.', '..']);
 
-                foreach ($filters as $key => $filter) {
-
-                    $filtersNames[] = preg_replace('/\\.[^.\\s]{3,4}$/', '', $filter);
-
+                    foreach ($filters as $filter) {
+                        // Limpiar el nombre del filtro, quitando la extensión del archivo
+                        $filtersNames[] = preg_replace('/\\.[^.\\s]{3,4}$/', '', $filter);
+                    }
                 }
 
-            }
+                return $filtersNames;
+            });
 
             return $filtersNames;
-
         }
+
 
         /**
          * Establecer data
@@ -206,22 +214,21 @@ class Builder
          */
         private function applyFilters()
         {
-            
             foreach ($this->filters as $key => $filter) {
+                $filterClass = $this->filtersNamespace . '\\' . $this->modelName .  '\\'. $filter;
                 
-                $filter = $this->filtersNamespace . '\\' . $this->modelName .  '\\'. $filter;
-                
-                if (class_exists($filter)) {
-            
-                    $this->modelQuery = $filter::apply($this->modelQuery, $this->data);
-            
+                // Asumiendo que la clase existe, directamente aplicamos el filtro
+                try {
+                    $this->modelQuery = $filterClass::apply($this->modelQuery, $this->data);
+                } catch (\Error $e) {
+                    // Manejar el error de forma que no interrumpa la aplicación
+                    Log::error("Filtro [$filterClass] no aplicado: " . $e->getMessage());
                 }
-            
             }
-
+        
             return $this;
-
         }
+        
 
         /**
          * Ejecutar la búsqueda
