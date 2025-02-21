@@ -55,12 +55,14 @@ class CreationFilterQuery
 
         if($data->created_at_start_date && $data->created_at_end_date) {
 
-            $created_at_start_date = Carbon::parse($data->created_at_start_date);
+            $created_at_start_date = Carbon::parse($data->created_at_start_date)->startOfDay();
 
-            $created_at_end_date = Carbon::parse($data->created_at_end_date);
+            $created_at_end_date = Carbon::parse($data->created_at_end_date)->endOfDay();
 
-            $query->whereDate('created_at', '>=', $created_at_start_date)
-            	->whereDate('created_at', '<=', $created_at_end_date);
+            $query->whereBetween('created_at', [
+                $created_at_start_date,
+                $created_at_end_date
+            ]);
 
         }
 

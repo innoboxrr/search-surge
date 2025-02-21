@@ -55,11 +55,14 @@ class UpdatedFilterQuery
 
         if($data->updated_at_start_date && $data->updated_at_end_date) {
 
-            $updated_at_start_date = Carbon::parse($data->updated_at_start_date);
+            $updated_at_start_date = Carbon::parse($data->updated_at_start_date)->startOfDay();
 
-            $updated_at_end_date = Carbon::parse($data->updated_at_end_date);
+            $updated_at_end_date = Carbon::parse($data->updated_at_end_date)->endOfDay();
 
-            $query->whereDate('updated_at', '>=', $updated_at_start_date)->whereDate('updated_at', '<=', $updated_at_end_date);
+            $query->whereBetween('created_at', [
+                $updated_at_start_date,
+                $updated_at_end_date
+            ]);
 
         }
 
