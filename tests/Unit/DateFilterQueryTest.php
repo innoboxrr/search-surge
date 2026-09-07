@@ -2,6 +2,9 @@
 
 namespace Innoboxrr\SearchSurge\Tests\Unit;
 
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Innoboxrr\SearchSurge\Search\Support\DataContainer;
 use Innoboxrr\SearchSurge\Search\Utils\CreationFilterQuery;
 use Innoboxrr\SearchSurge\Search\Utils\UpdatedFilterQuery;
@@ -178,20 +181,22 @@ class DateFilterQueryTest extends TestCase
         // Los limites se pasan como 'Y-m-d'. Con la forma larga
         // ('2026-01-15 00:00:00'), en SQLite -que compara cadenas- una columna
         // DATE que guarda '2026-01-15' nunca casaria.
-        \Illuminate\Support\Facades\Schema::create('solo_fechas', function ($table): void {
+        Schema::create('solo_fechas', function ($table): void {
             $table->id();
             $table->string('name');
             $table->date('created_at');
         });
 
-        \Illuminate\Support\Facades\DB::table('solo_fechas')->insert([
+        DB::table('solo_fechas')->insert([
             ['name' => 'dentro', 'created_at' => '2026-01-15'],
             ['name' => 'antes', 'created_at' => '2026-01-14'],
             ['name' => 'despues', 'created_at' => '2026-01-16'],
         ]);
 
-        $model = new class extends \Illuminate\Database\Eloquent\Model {
+        $model = new class extends Model
+        {
             protected $table = 'solo_fechas';
+
             public $timestamps = false;
         };
 

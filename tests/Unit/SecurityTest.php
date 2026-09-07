@@ -2,12 +2,16 @@
 
 namespace Innoboxrr\SearchSurge\Tests\Unit;
 
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Innoboxrr\SearchSurge\Search\Builder;
 use Innoboxrr\SearchSurge\Search\Support\DataContainer;
+use Innoboxrr\SearchSurge\Search\Support\FilterRegistry;
 use Innoboxrr\SearchSurge\Search\Utils\CreationFilterQuery;
 use Innoboxrr\SearchSurge\Search\Utils\Order;
 use Innoboxrr\SearchSurge\Tests\Models\TestModel;
+use Innoboxrr\SearchSurge\Tests\Models\TestUser;
 use Innoboxrr\SearchSurge\Tests\TestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -78,7 +82,7 @@ class SecurityTest extends TestCase
             $this->assertMatchesRegularExpression(
                 '/order by "name" (asc|desc)$/',
                 $sql,
-                'orderMode se colo en el SQL: ' . $sql
+                'orderMode se colo en el SQL: '.$sql
             );
         }
     }
@@ -193,7 +197,7 @@ class SecurityTest extends TestCase
             'paginator' => 'raw; DROP TABLE test_models',
         ]);
 
-        $this->assertInstanceOf(\Illuminate\Pagination\LengthAwarePaginator::class, $result);
+        $this->assertInstanceOf(LengthAwarePaginator::class, $result);
     }
 
     /* -----------------------------------------------------------------
@@ -203,7 +207,7 @@ class SecurityTest extends TestCase
     #[Test]
     public function un_namespace_de_filtros_manipulado_no_carga_clases_arbitrarias(): void
     {
-        $filters = $this->app->make(\Innoboxrr\SearchSurge\Search\Support\FilterRegistry::class)
+        $filters = $this->app->make(FilterRegistry::class)
             ->resolve(TestModel::class, [
                 'filters' => ['\\Illuminate\\Support\\Str', '\\stdClass', 'NoExiste'],
             ]);
@@ -216,34 +220,38 @@ class SecurityTest extends TestCase
     #[Test]
     public function una_ruta_de_filtros_con_traversal_no_carga_nada_de_fuera(): void
     {
-        $filters = $this->app->make(\Innoboxrr\SearchSurge\Search\Support\FilterRegistry::class)
+        $filters = $this->app->make(FilterRegistry::class)
             ->resolve(TestModel::class, [
-                'filtersPath' => '..' . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . '..',
+                'filtersPath' => '..'.DIRECTORY_SEPARATOR.'..'.DIRECTORY_SEPARATOR.'..',
                 'filtersNamespace' => 'Whatever',
-                'basePath' => sys_get_temp_dir() . DIRECTORY_SEPARATOR,
+                'basePath' => sys_get_temp_dir().DIRECTORY_SEPARATOR,
             ]);
 
         // El candidato con traversal no aporta nada -no hay clases cargables
         // ahi- y la resolucion cae a la convencion. Lo que se comprueba es que
         // no aparezca NADA fuera del namespace legitimo del modelo.
         foreach ($filters as $filter) {
-            $this->assertStringStartsWith(
-                'Innoboxrr\\SearchSurge\\Tests\\Models\\Filters\\TestModel\\',
-                $filter,
-                "Se resolvio un filtro fuera del namespace esperado: {$filter}"
-            );
+            // Los comunes son clases del propio paquete, no del directorio que
+            // se intento alcanzar con el traversal.
+            $legitimo = str_starts_with($filter, 'Innoboxrr\\SearchSurge\\Tests\\Models\\Filters\\TestModel\\')
+                || str_starts_with($filter, 'Innoboxrr\\SearchSurge\\Search\\Filters\\Common\\');
+
+            $this->assertTrue($legitimo, "Se resolvio un filtro fuera del namespace esperado: {$filter}");
         }
     }
 
     #[Test]
-    public function un_namespace_inventado_no_resuelve_ningun_filtro(): void
+    public function un_namespace_inventado_no_resuelve_ningun_filtro_del_proyecto(): void
     {
-        $filters = $this->app->make(\Innoboxrr\SearchSurge\Search\Support\FilterRegistry::class)
-            ->resolve(\Innoboxrr\SearchSurge\Tests\Models\TestUser::class, [
+        $filters = $this->app->make(FilterRegistry::class)
+            ->resolve(TestUser::class, [
                 'filtersNamespace' => 'Vendor\\Que\\No\\Existe',
             ]);
 
-        $this->assertSame([], $filters);
+        // Solo quedan los comunes, que son clases del propio paquete.
+        foreach ($filters as $filter) {
+            $this->assertStringStartsWith('Innoboxrr\\SearchSurge\\Search\\Filters\\Common\\', $filter);
+        }
     }
 
     /* -----------------------------------------------------------------
@@ -296,7 +304,7 @@ class SecurityTest extends TestCase
         }
 
         $this->assertSame(1, TestModel::query()->count());
-        $this->assertTrue(\Illuminate\Support\Facades\Schema::hasTable('test_models'));
-        $this->assertTrue(\Illuminate\Support\Facades\Schema::hasTable('test_users'));
+        $this->assertTrue(Schema::hasTable('test_models'));
+        $this->assertTrue(Schema::hasTable('test_users'));
     }
 }

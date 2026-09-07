@@ -3,9 +3,9 @@
 namespace Innoboxrr\SearchSurge\Tests\Unit;
 
 use Illuminate\Support\Facades\Schema;
-use Innoboxrr\SearchSurge\Search\Builder;
 use Innoboxrr\SearchSurge\Search\Support\DataContainer;
 use Innoboxrr\SearchSurge\Search\Support\QueryAnalyzer;
+use Innoboxrr\SearchSurge\Search\Utils\CreationFilterQuery;
 use Innoboxrr\SearchSurge\Search\Utils\TextSearch;
 use Innoboxrr\SearchSurge\Tests\Models\TestModel;
 use Innoboxrr\SearchSurge\Tests\TestCase;
@@ -81,7 +81,7 @@ class QueryAnalyzerTest extends TestCase
     #[Test]
     public function el_filtro_de_fechas_de_v3_no_dispara_ese_aviso(): void
     {
-        $query = \Innoboxrr\SearchSurge\Search\Utils\CreationFilterQuery::sort(
+        $query = CreationFilterQuery::sort(
             TestModel::query(),
             new DataContainer(['created_at' => '2026-01-01', 'operator' => '>='])
         );

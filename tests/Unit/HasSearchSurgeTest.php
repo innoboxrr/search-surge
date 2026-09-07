@@ -5,6 +5,7 @@ namespace Innoboxrr\SearchSurge\Tests\Unit;
 use Illuminate\Contracts\Pagination\Paginator;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\LazyCollection;
 use Innoboxrr\SearchSurge\Tests\Fixtures\Filters\KeyedNameFilter;
 use Innoboxrr\SearchSurge\Tests\Models\TaggedModel;
 use Innoboxrr\SearchSurge\Tests\TestCase;
@@ -78,7 +79,7 @@ class HasSearchSurgeTest extends TestCase
 
         $lazy = TaggedModel::surgeLazy();
 
-        $this->assertInstanceOf(\Illuminate\Support\LazyCollection::class, $lazy);
+        $this->assertInstanceOf(LazyCollection::class, $lazy);
         $this->assertSame(2, $lazy->count());
     }
 }

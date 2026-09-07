@@ -2,9 +2,6 @@
 
 namespace Innoboxrr\SearchSurge\Tests\Fixtures\Engine;
 
-use Illuminate\Database\Eloquent\Builder;
-use Innoboxrr\SearchSurge\Search\Support\DataContainer;
-
 /**
  * Variante que usa el motor solo como filtro y deja mandar al orden del
  * usuario.

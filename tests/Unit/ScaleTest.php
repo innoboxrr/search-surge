@@ -5,6 +5,8 @@ namespace Innoboxrr\SearchSurge\Tests\Unit;
 use Illuminate\Support\Facades\DB;
 use Innoboxrr\SearchSurge\Exceptions\PageLimitExceededException;
 use Innoboxrr\SearchSurge\Search\Builder;
+use Innoboxrr\SearchSurge\Search\Support\ComposerLocator;
+use Innoboxrr\SearchSurge\Search\Support\FilterRegistry;
 use Innoboxrr\SearchSurge\Tests\Models\TestModel;
 use Innoboxrr\SearchSurge\Tests\TestCase;
 use PHPUnit\Framework\Attributes\Test;
@@ -35,7 +37,7 @@ class ScaleTest extends TestCase
             $day = str_pad((string) (($i % $distinctDates) + 1), 2, '0', STR_PAD_LEFT);
 
             $rows[] = [
-                'name' => 'fila-' . str_pad((string) $i, 4, '0', STR_PAD_LEFT),
+                'name' => 'fila-'.str_pad((string) $i, 4, '0', STR_PAD_LEFT),
                 'created_at' => "2026-01-{$day} 10:00:00",
                 'updated_at' => "2026-01-{$day} 10:00:00",
             ];
@@ -402,7 +404,7 @@ class ScaleTest extends TestCase
     #[Test]
     public function resolver_los_filtros_no_toca_el_disco_dos_veces(): void
     {
-        $registry = $this->app->make(\Innoboxrr\SearchSurge\Search\Support\FilterRegistry::class);
+        $registry = $this->app->make(FilterRegistry::class);
 
         $primera = $registry->resolve(TestModel::class);
 
@@ -428,7 +430,7 @@ class ScaleTest extends TestCase
      */
     protected function globCallCount(): int
     {
-        $reflection = new \ReflectionClass(\Innoboxrr\SearchSurge\Search\Support\ComposerLocator::class);
+        $reflection = new \ReflectionClass(ComposerLocator::class);
         $property = $reflection->getProperty('resolved');
 
         return count($property->getValue());

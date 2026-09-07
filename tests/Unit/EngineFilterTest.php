@@ -3,6 +3,7 @@
 namespace Innoboxrr\SearchSurge\Tests\Unit;
 
 use Innoboxrr\SearchSurge\Search\Builder;
+use Innoboxrr\SearchSurge\Search\Filters\EngineFilter;
 use Innoboxrr\SearchSurge\Search\Support\FilterMeta;
 use Innoboxrr\SearchSurge\Search\Utils\Relevance;
 use Innoboxrr\SearchSurge\Tests\Fixtures\Engine\DefaultEngineFilter;
@@ -10,6 +11,9 @@ use Innoboxrr\SearchSurge\Tests\Fixtures\Engine\FakeEngine;
 use Innoboxrr\SearchSurge\Tests\Fixtures\Engine\FakeEngineFilter;
 use Innoboxrr\SearchSurge\Tests\Fixtures\Engine\SmallLimitEngineFilter;
 use Innoboxrr\SearchSurge\Tests\Fixtures\Engine\UnorderedEngineFilter;
+use Innoboxrr\SearchSurge\Tests\Fixtures\Filters\BrokenFilter;
+use Innoboxrr\SearchSurge\Tests\Models\Filters\TestModel\IdFilter;
+use Innoboxrr\SearchSurge\Tests\Models\Filters\TestModel\ManagedFilter;
 use Innoboxrr\SearchSurge\Tests\Models\TestModel;
 use Innoboxrr\SearchSurge\Tests\TestCase;
 use PHPUnit\Framework\Attributes\Test;
@@ -36,7 +40,7 @@ class EngineFilterTest extends TestCase
     {
         TestModel::query()->insert(array_map(
             static fn (int $i): array => [
-                'name' => 'fila-' . $i,
+                'name' => 'fila-'.$i,
                 'owner_id' => $i % 2,
             ],
             range(1, $count)
@@ -201,7 +205,7 @@ class EngineFilterTest extends TestCase
         $ids = $this->builder()->get(
             TestModel::class,
             ['q' => 'algo', 'paginate' => 0, 'orderBy' => 'id', 'orderMode' => 'asc'],
-            ['filters' => [UnorderedEngineFilter::class, \Innoboxrr\SearchSurge\Tests\Models\Filters\TestModel\IdFilter::class]]
+            ['filters' => [UnorderedEngineFilter::class, IdFilter::class]]
         )->pluck('id')->all();
 
         $this->assertSame([2, 7, 9], $ids);
@@ -215,7 +219,7 @@ class EngineFilterTest extends TestCase
 
         $this->assertLessThan(
             FilterMeta::priority(FakeEngineFilter::class),
-            FilterMeta::priority(\Innoboxrr\SearchSurge\Tests\Models\Filters\TestModel\ManagedFilter::class)
+            FilterMeta::priority(ManagedFilter::class)
         );
     }
 
@@ -237,7 +241,8 @@ class EngineFilterTest extends TestCase
         // parece que funciona y devuelve un millon de filas.
         $this->seedRows(5);
 
-        $roto = new class extends \Innoboxrr\SearchSurge\Search\Filters\EngineFilter {
+        $roto = new class extends EngineFilter
+        {
             protected static function ids($query, $data, string $term): array
             {
                 throw new \RuntimeException('motor caido');
@@ -264,7 +269,7 @@ class EngineFilterTest extends TestCase
         $this->expectException(\RuntimeException::class);
 
         $this->builder()->get(TestModel::class, ['paginate' => 0], [
-            'filters' => [\Innoboxrr\SearchSurge\Tests\Fixtures\Filters\BrokenFilter::class],
+            'filters' => [BrokenFilter::class],
             'strict' => true,
         ]);
     }

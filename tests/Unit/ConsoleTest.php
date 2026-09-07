@@ -5,6 +5,7 @@ namespace Innoboxrr\SearchSurge\Tests\Unit;
 use Illuminate\Support\Facades\File;
 use Innoboxrr\SearchSurge\Search\Support\FilterRegistry;
 use Innoboxrr\SearchSurge\Tests\Fixtures\Filters\KeyedNameFilter;
+use Innoboxrr\SearchSurge\Tests\Models\Filters\TestModel\IdFilter;
 use Innoboxrr\SearchSurge\Tests\Models\TestModel;
 use Innoboxrr\SearchSurge\Tests\TestCase;
 use PHPUnit\Framework\Attributes\Test;
@@ -41,7 +42,7 @@ class ConsoleTest extends TestCase
         $this->assertIsArray($manifest);
         $this->assertArrayHasKey(TestModel::class, $manifest);
         $this->assertContains(
-            \Innoboxrr\SearchSurge\Tests\Models\Filters\TestModel\IdFilter::class,
+            IdFilter::class,
             $manifest[TestModel::class]
         );
     }

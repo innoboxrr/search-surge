@@ -2,7 +2,10 @@
 
 namespace Innoboxrr\SearchSurge\Tests\Unit;
 
+use Illuminate\Support\Facades\Gate;
 use Innoboxrr\SearchSurge\Search\Builder;
+use Innoboxrr\SearchSurge\Search\Support\FilterRegistry;
+use Innoboxrr\SearchSurge\Tests\Models\Filters\TestModel\ManagedFilter;
 use Innoboxrr\SearchSurge\Tests\Models\TestModel;
 use Innoboxrr\SearchSurge\Tests\Models\TestUser;
 use Innoboxrr\SearchSurge\Tests\TestCase;
@@ -83,7 +86,7 @@ class ManagedTest extends TestCase
     {
         $this->actingAsUser();
 
-        \Illuminate\Support\Facades\Gate::define('viewAny', fn ($user, $model = null): bool => true);
+        Gate::define('viewAny', fn ($user, $model = null): bool => true);
 
         $sql = $this->builder()->query(TestModel::class, [
             'managed' => true,
@@ -98,7 +101,7 @@ class ManagedTest extends TestCase
     {
         $this->actingAsUser();
 
-        \Illuminate\Support\Facades\Gate::define('viewAny', fn ($user, $model = null): bool => false);
+        Gate::define('viewAny', fn ($user, $model = null): bool => false);
 
         $sql = $this->builder()->query(TestModel::class, [
             'managed' => true,
@@ -111,11 +114,11 @@ class ManagedTest extends TestCase
     #[Test]
     public function el_filtro_de_autorizacion_se_aplica_antes_que_el_resto(): void
     {
-        $filters = $this->app->make(\Innoboxrr\SearchSurge\Search\Support\FilterRegistry::class)
+        $filters = $this->app->make(FilterRegistry::class)
             ->resolve(TestModel::class);
 
         $this->assertSame(
-            \Innoboxrr\SearchSurge\Tests\Models\Filters\TestModel\ManagedFilter::class,
+            ManagedFilter::class,
             $filters[0]
         );
     }

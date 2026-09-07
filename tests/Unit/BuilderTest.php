@@ -7,7 +7,9 @@ use Illuminate\Contracts\Pagination\Paginator;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\LazyCollection;
 use Innoboxrr\SearchSurge\Search\Builder;
+use Innoboxrr\SearchSurge\Search\Filters\Common\IdFilter;
 use Innoboxrr\SearchSurge\Search\Support\FilterRegistry;
 use Innoboxrr\SearchSurge\Tests\Fixtures\Filters\BrokenFilter;
 use Innoboxrr\SearchSurge\Tests\Fixtures\Filters\BrokenManagedFilter;
@@ -15,6 +17,7 @@ use Innoboxrr\SearchSurge\Tests\Fixtures\Filters\EarlyFilter;
 use Innoboxrr\SearchSurge\Tests\Fixtures\Filters\KeyedNameFilter;
 use Innoboxrr\SearchSurge\Tests\Fixtures\Filters\LateFilter;
 use Innoboxrr\SearchSurge\Tests\Fixtures\Filters\MutatingFilter;
+use Innoboxrr\SearchSurge\Tests\Models\Filters\TestModel\CreationFilter;
 use Innoboxrr\SearchSurge\Tests\Models\TestModel;
 use Innoboxrr\SearchSurge\Tests\TestCase;
 use PHPUnit\Framework\Attributes\Test;
@@ -60,9 +63,9 @@ class BuilderTest extends TestCase
     public function sigue_aceptando_filtersPath_y_filtersNamespace(): void
     {
         $result = $this->builder()
-            ->setBasePath(realpath(__DIR__ . '/../..') . DIRECTORY_SEPARATOR)
+            ->setBasePath(realpath(__DIR__.'/../..').DIRECTORY_SEPARATOR)
             ->get(TestModel::class, ['paginate' => 0], [
-                'filtersPath' => 'tests' . DIRECTORY_SEPARATOR . 'Models' . DIRECTORY_SEPARATOR . 'Filters',
+                'filtersPath' => 'tests'.DIRECTORY_SEPARATOR.'Models'.DIRECTORY_SEPARATOR.'Filters',
                 'filtersNamespace' => 'Innoboxrr\\SearchSurge\\Tests\\Models\\Filters',
             ]);
 
@@ -83,7 +86,7 @@ class BuilderTest extends TestCase
             $filters
         );
         $this->assertContains(
-            \Innoboxrr\SearchSurge\Tests\Models\Filters\TestModel\CreationFilter::class,
+            CreationFilter::class,
             $filters
         );
     }
@@ -103,7 +106,39 @@ class BuilderTest extends TestCase
         $registry = $this->app->make(FilterRegistry::class);
         $registry->register(TestModel::class, [KeyedNameFilter::class]);
 
-        $this->assertSame([KeyedNameFilter::class], $registry->resolve(TestModel::class));
+        $filters = $registry->resolve(TestModel::class);
+
+        $this->assertContains(KeyedNameFilter::class, $filters);
+        $this->assertNotContains(
+            \Innoboxrr\SearchSurge\Tests\Models\Filters\TestModel\IdFilter::class,
+            $filters
+        );
+    }
+
+    #[Test]
+    public function lo_registrado_a_nivel_de_modelo_si_recibe_los_filtros_comunes(): void
+    {
+        // Registrar el conjunto del modelo no es lo mismo que pasar una lista
+        // cerrada para una consulta concreta: aqui los comunes siguen aportando.
+        $registry = $this->app->make(FilterRegistry::class);
+        $registry->register(TestModel::class, [KeyedNameFilter::class]);
+
+        $this->assertContains(
+            IdFilter::class,
+            $registry->resolve(TestModel::class)
+        );
+    }
+
+    #[Test]
+    public function una_lista_explicita_en_la_llamada_no_recibe_comunes(): void
+    {
+        // Colar filtros que nadie pidio, justo donde mas control se espera,
+        // seria una sorpresa desagradable.
+        $this->assertSame(
+            [KeyedNameFilter::class],
+            $this->app->make(FilterRegistry::class)
+                ->resolve(TestModel::class, ['filters' => [KeyedNameFilter::class]])
+        );
     }
 
     #[Test]
@@ -264,12 +299,17 @@ class BuilderTest extends TestCase
     {
         $registry = $this->app->make(FilterRegistry::class);
 
-        $registry->resolve(TestModel::class, ['filtersNamespace' => 'Innoboxrr\\SearchSurge\\Tests\\Models\\Filters']);
+        $options = ['filtersNamespace' => 'Innoboxrr\\SearchSurge\\Tests\\Models\\Filters'];
+
+        $registry->resolve(TestModel::class, $options);
         $registry->register(TestModel::class, [KeyedNameFilter::class]);
 
-        $this->assertSame(
-            [KeyedNameFilter::class],
-            $registry->resolve(TestModel::class, ['filtersNamespace' => 'Innoboxrr\\SearchSurge\\Tests\\Models\\Filters'])
+        $filters = $registry->resolve(TestModel::class, $options);
+
+        $this->assertContains(KeyedNameFilter::class, $filters);
+        $this->assertNotContains(
+            \Innoboxrr\SearchSurge\Tests\Models\Filters\TestModel\IdFilter::class,
+            $filters
         );
     }
 
@@ -348,7 +388,7 @@ class BuilderTest extends TestCase
 
         $lazy = $this->builder()->lazy(TestModel::class, [], [], 2);
 
-        $this->assertInstanceOf(\Illuminate\Support\LazyCollection::class, $lazy);
+        $this->assertInstanceOf(LazyCollection::class, $lazy);
         $this->assertSame(3, $lazy->count());
     }
 

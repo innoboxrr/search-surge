@@ -21,6 +21,6 @@ class KeyedNameFilter implements Filter
     {
         self::$calls++;
 
-        return $query->where('name', 'like', $data->string('name') . '%');
+        return $query->where('name', 'like', $data->string('name').'%');
     }
 }

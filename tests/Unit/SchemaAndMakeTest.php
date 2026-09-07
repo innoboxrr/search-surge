@@ -126,12 +126,12 @@ class SchemaAndMakeTest extends TestCase
 
     protected function filtersDirectory(): string
     {
-        return realpath(__DIR__ . '/../Models/Filters/TestModel');
+        return realpath(__DIR__.'/../Models/Filters/TestModel');
     }
 
     protected function cleanUp(string $class): void
     {
-        $path = $this->filtersDirectory() . DIRECTORY_SEPARATOR . $class . '.php';
+        $path = $this->filtersDirectory().DIRECTORY_SEPARATOR.$class.'.php';
 
         if (File::exists($path)) {
             File::delete($path);
@@ -153,16 +153,16 @@ class SchemaAndMakeTest extends TestCase
     #[DataProvider('tipos')]
     public function genera_cada_tipo_de_filtro(string $type, string $needle): void
     {
-        $class = 'Generado' . ucfirst($type) . 'Filter';
+        $class = 'Generado'.ucfirst($type).'Filter';
         $this->cleanUp($class);
 
         $this->artisan('search-surge:filter', [
             'model' => TestModel::class,
-            'name' => 'Generado' . ucfirst($type),
+            'name' => 'Generado'.ucfirst($type),
             '--type' => $type,
         ])->assertSuccessful();
 
-        $path = $this->filtersDirectory() . DIRECTORY_SEPARATOR . $class . '.php';
+        $path = $this->filtersDirectory().DIRECTORY_SEPARATOR.$class.'.php';
 
         $this->assertFileExists($path);
         $this->assertStringContainsString($needle, File::get($path));
@@ -184,7 +184,7 @@ class SchemaAndMakeTest extends TestCase
             'name' => 'Color',
         ])->assertSuccessful();
 
-        $path = $this->filtersDirectory() . DIRECTORY_SEPARATOR . 'ColorFilter.php';
+        $path = $this->filtersDirectory().DIRECTORY_SEPARATOR.'ColorFilter.php';
 
         require_once $path;
 
@@ -210,8 +210,8 @@ class SchemaAndMakeTest extends TestCase
             'name' => 'TonoFilter',
         ])->assertSuccessful();
 
-        $this->assertFileExists($this->filtersDirectory() . DIRECTORY_SEPARATOR . 'TonoFilter.php');
-        $this->assertFileDoesNotExist($this->filtersDirectory() . DIRECTORY_SEPARATOR . 'TonoFilterFilter.php');
+        $this->assertFileExists($this->filtersDirectory().DIRECTORY_SEPARATOR.'TonoFilter.php');
+        $this->assertFileDoesNotExist($this->filtersDirectory().DIRECTORY_SEPARATOR.'TonoFilterFilter.php');
 
         $this->cleanUp('TonoFilter');
     }
@@ -227,7 +227,7 @@ class SchemaAndMakeTest extends TestCase
         // El IdFilter original sigue intacto.
         $this->assertStringContainsString(
             'Order::orderBy($query, $data, \'id\')',
-            File::get($this->filtersDirectory() . DIRECTORY_SEPARATOR . 'IdFilter.php')
+            File::get($this->filtersDirectory().DIRECTORY_SEPARATOR.'IdFilter.php')
         );
     }
 

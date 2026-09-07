@@ -2,9 +2,10 @@
 
 namespace Innoboxrr\SearchSurge\Tests\Unit;
 
-use Illuminate\Support\Facades\Route;
 use Innoboxrr\SearchSurge\Facades\SearchSurge;
 use Innoboxrr\SearchSurge\Tests\Fixtures\IndexRequest;
+use Innoboxrr\SearchSurge\Tests\Models\Filters\TestModel\CreationFilter;
+use Innoboxrr\SearchSurge\Tests\Models\Filters\TestModel\IdFilter;
 use Innoboxrr\SearchSurge\Tests\Models\TestModel;
 use Innoboxrr\SearchSurge\Tests\TestCase;
 use PHPUnit\Framework\Attributes\Test;
@@ -31,8 +32,8 @@ class IntegrationTest extends TestCase
             $rows[] = [
                 'name' => $name,
                 'owner_id' => ($i % 2) + 1,
-                'created_at' => '2026-01-0' . ($i + 1) . ' 12:00:00',
-                'updated_at' => '2026-02-0' . ($i + 1) . ' 12:00:00',
+                'created_at' => '2026-01-0'.($i + 1).' 12:00:00',
+                'updated_at' => '2026-02-0'.($i + 1).' 12:00:00',
             ];
         }
 
@@ -63,7 +64,7 @@ class IntegrationTest extends TestCase
 
         $id = TestModel::query()->where('name', 'beto')->value('id');
 
-        $response = $this->getJson('/items?id=' . $id);
+        $response = $this->getJson('/items?id='.$id);
 
         $response->assertOk();
         $this->assertSame(1, $response->json('total'));
@@ -151,7 +152,7 @@ class IntegrationTest extends TestCase
 
         // orderBy, orderMode, operator y paginate son parametros de control:
         // un valor invalido se descarta y la busqueda sigue devolviendo todo.
-        $response = $this->getJson('/items?' . http_build_query([
+        $response = $this->getJson('/items?'.http_build_query([
             'orderBy' => 'DROP TABLE test_models',
             'orderMode' => 'desc; --',
             'operator' => 'UNION',
@@ -172,7 +173,7 @@ class IntegrationTest extends TestCase
 
         // Un id no numerico es un filtro que no casa con ninguna fila. No se
         // ignora en silencio: se responde "cero resultados", que es lo honesto.
-        $response = $this->getJson('/items?id=' . urlencode("1' OR '1'='1"));
+        $response = $this->getJson('/items?id='.urlencode("1' OR '1'='1"));
 
         $response->assertOk();
         $this->assertSame(0, $response->json('total'));
@@ -190,7 +191,7 @@ class IntegrationTest extends TestCase
 
         $this->assertNotEmpty($filters);
         $this->assertContains(
-            \Innoboxrr\SearchSurge\Tests\Models\Filters\TestModel\IdFilter::class,
+            IdFilter::class,
             $filters
         );
     }
@@ -205,7 +206,7 @@ class IntegrationTest extends TestCase
         );
 
         $this->assertContains(
-            \Innoboxrr\SearchSurge\Tests\Models\Filters\TestModel\CreationFilter::class,
+            CreationFilter::class,
             SearchSurge::filtersFor(TestModel::class)
         );
     }
@@ -267,8 +268,8 @@ class IntegrationTest extends TestCase
 
         // 2. Ruta fisica (modo legado de v2).
         $porRuta = SearchSurge::filtersFor(TestModel::class, [
-            'basePath' => realpath(__DIR__ . '/../..') . DIRECTORY_SEPARATOR,
-            'filtersPath' => 'tests' . DIRECTORY_SEPARATOR . 'Models' . DIRECTORY_SEPARATOR . 'Filters',
+            'basePath' => realpath(__DIR__.'/../..').DIRECTORY_SEPARATOR,
+            'filtersPath' => 'tests'.DIRECTORY_SEPARATOR.'Models'.DIRECTORY_SEPARATOR.'Filters',
             'filtersNamespace' => 'Innoboxrr\\SearchSurge\\Tests\\Models\\Filters',
         ]);
 

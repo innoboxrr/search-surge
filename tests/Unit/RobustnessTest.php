@@ -2,9 +2,11 @@
 
 namespace Innoboxrr\SearchSurge\Tests\Unit;
 
+use Illuminate\Contracts\Pagination\Paginator;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
+use Innoboxrr\SearchSurge\Facades\SearchSurge;
 use Innoboxrr\SearchSurge\Search\Builder;
 use Innoboxrr\SearchSurge\Search\Support\ComposerLocator;
 use Innoboxrr\SearchSurge\Search\Support\FilterMeta;
@@ -12,6 +14,7 @@ use Innoboxrr\SearchSurge\Search\Support\FilterRegistry;
 use Innoboxrr\SearchSurge\Tests\Fixtures\Filters\BrokenFilter;
 use Innoboxrr\SearchSurge\Tests\Fixtures\Filters\KeyedNameFilter;
 use Innoboxrr\SearchSurge\Tests\Models\TestModel;
+use Innoboxrr\SearchSurge\Tests\Models\TestUser;
 use Innoboxrr\SearchSurge\Tests\TestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -46,19 +49,20 @@ class RobustnessTest extends TestCase
     #[DataProvider('retornosRaros')]
     public function un_filtro_que_devuelve_cualquier_cosa_no_rompe_la_busqueda(mixed $retorno): void
     {
-        $filter = new class($retorno) {
+        $filter = new class($retorno)
+        {
             public static mixed $retorno = null;
 
             public function __construct(mixed $r)
             {
-                static::$retorno = $r;
+                self::$retorno = $r;
             }
 
             public static function apply($query, $data)
             {
                 $query->where('name', 'algo');
 
-                return static::$retorno;
+                return self::$retorno;
             }
         };
 
@@ -107,7 +111,8 @@ class RobustnessTest extends TestCase
     #[Test]
     public function un_filtro_que_agota_la_memoria_o_lanza_un_Error_tambien_se_captura(): void
     {
-        $filter = new class {
+        $filter = new class
+        {
             public static function apply($query, $data)
             {
                 // TypeError: un \Error, no una \Exception.
@@ -131,14 +136,15 @@ class RobustnessTest extends TestCase
     #[Test]
     public function unas_keys_que_no_son_un_array_se_ignoran(): void
     {
-        $filter = new class {
+        $filter = new class
+        {
             public static $keys = 'no soy un array';
 
             public static int $calls = 0;
 
             public static function apply($query, $data)
             {
-                static::$calls++;
+                self::$calls++;
 
                 return $query;
             }
@@ -153,14 +159,15 @@ class RobustnessTest extends TestCase
     #[Test]
     public function unas_keys_vacias_no_apagan_el_filtro(): void
     {
-        $filter = new class {
+        $filter = new class
+        {
             public static array $keys = [];
 
             public static int $calls = 0;
 
             public static function apply($query, $data)
             {
-                static::$calls++;
+                self::$calls++;
 
                 return $query;
             }
@@ -174,7 +181,8 @@ class RobustnessTest extends TestCase
     #[Test]
     public function una_priority_no_numerica_se_trata_como_cero(): void
     {
-        $filter = new class {
+        $filter = new class
+        {
             public static $priority = 'alta';
 
             public static function apply($query, $data)
@@ -189,14 +197,15 @@ class RobustnessTest extends TestCase
     #[Test]
     public function una_keys_privada_o_no_estatica_no_se_lee(): void
     {
-        $filter = new class {
+        $filter = new class
+        {
             protected static array $keys = ['jamas'];
 
             public static int $calls = 0;
 
             public static function apply($query, $data)
             {
-                static::$calls++;
+                self::$calls++;
 
                 return $query;
             }
@@ -235,13 +244,15 @@ class RobustnessTest extends TestCase
         $path = $registry->manifestPath();
 
         File::ensureDirectoryExists(dirname($path));
-        File::put($path, "<?php\n\nreturn [" . var_export(TestModel::class, true) . " => ['App\\\\NoExiste']];\n");
+        File::put($path, "<?php\n\nreturn [".var_export(TestModel::class, true)." => ['App\\\\NoExiste']];\n");
 
         $registry->forget();
 
         // Las clases del manifiesto se verifican; si ninguna existe, no se
-        // devuelve una lista con basura.
-        $this->assertSame([], $registry->resolve(TestModel::class));
+        // devuelve una lista con basura. Solo quedan los filtros comunes.
+        foreach ($registry->resolve(TestModel::class) as $filter) {
+            $this->assertStringStartsWith('Innoboxrr\\SearchSurge\\Search\\Filters\\Common\\', $filter);
+        }
 
         File::delete($path);
     }
@@ -280,7 +291,7 @@ class RobustnessTest extends TestCase
 
         $this->assertNotNull($directory);
         $this->assertDirectoryExists($directory);
-        $this->assertFileExists($directory . DIRECTORY_SEPARATOR . 'IdFilter.php');
+        $this->assertFileExists($directory.DIRECTORY_SEPARATOR.'IdFilter.php');
     }
 
     #[Test]
@@ -322,7 +333,7 @@ class RobustnessTest extends TestCase
 
         $this->assertTrue(
             $result instanceof Collection
-            || $result instanceof \Illuminate\Contracts\Pagination\Paginator,
+            || $result instanceof Paginator,
             'La busqueda no devolvio un resultado valido.'
         );
 
@@ -335,7 +346,7 @@ class RobustnessTest extends TestCase
     public function un_modelo_sin_ningun_filtro_devuelve_la_consulta_limpia(): void
     {
         $result = $this->builder()->get(
-            \Innoboxrr\SearchSurge\Tests\Models\TestUser::class,
+            TestUser::class,
             ['paginate' => 0]
         );
 
@@ -362,8 +373,8 @@ class RobustnessTest extends TestCase
     #[Test]
     public function el_facade_entrega_una_instancia_nueva_en_cada_llamada(): void
     {
-        $a = \Innoboxrr\SearchSurge\Facades\SearchSurge::getFacadeRoot();
-        $b = \Innoboxrr\SearchSurge\Facades\SearchSurge::getFacadeRoot();
+        $a = SearchSurge::getFacadeRoot();
+        $b = SearchSurge::getFacadeRoot();
 
         $this->assertNotSame($a, $b);
     }

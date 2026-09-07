@@ -2,6 +2,7 @@
 
 namespace Innoboxrr\SearchSurge\Tests;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 use Innoboxrr\SearchSurge\Providers\SearchSurgeServiceProvider;
@@ -34,13 +35,23 @@ abstract class TestCase extends \Orchestra\Testbench\TestCase
             $table->id();
             $table->string('name')->nullable();
             $table->unsignedBigInteger('owner_id')->nullable();
+            $table->unsignedBigInteger('author_id')->nullable();
+            $table->string('status')->nullable();
+            $table->decimal('price', 10, 2)->nullable();
             $table->timestamps();
+            $table->softDeletes();
         });
 
         Schema::create('test_users', function (Blueprint $table): void {
             $table->id();
             $table->string('name')->nullable();
             $table->timestamps();
+        });
+
+        Schema::create('test_authors', function (Blueprint $table): void {
+            $table->id();
+            $table->string('name');
+            $table->string('country', 2);
         });
     }
 
@@ -66,12 +77,12 @@ abstract class TestCase extends \Orchestra\Testbench\TestCase
      * El SQL con los bindings ya interpolados, para poder afirmar sobre la
      * forma real de la consulta.
      */
-    protected function rawSql(\Illuminate\Database\Eloquent\Builder $query): string
+    protected function rawSql(Builder $query): string
     {
         $sql = $query->toSql();
 
         foreach ($query->getBindings() as $binding) {
-            $sql = preg_replace('/\?/', "'" . (string) $binding . "'", $sql, 1);
+            $sql = preg_replace('/\?/', "'".(string) $binding."'", $sql, 1);
         }
 
         return $sql;
