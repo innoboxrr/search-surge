@@ -6,7 +6,9 @@ Escribes filtros pequeños, uno por archivo. SearchSurge los encuentra, los
 ordena y los aplica. Funciona igual dentro de una app que dentro de un paquete,
 sin rutas a mano y sin configuración.
 
-**Laravel 12 · 13** — PHP 8.2+ · 381 tests · PHPStan sin errores
+**Laravel 12 · 13** · PHP 8.2+ · MySQL · PostgreSQL · SQLite
+
+464 tests · 91% de cobertura · PHPStan sin errores · nada se publica sin pasar por ahí
 
 ```bash
 composer require innoboxrr/search-surge
@@ -32,6 +34,9 @@ No hay que registrar nada: el ServiceProvider se autodescubre.
 - [Observabilidad](#observabilidad)
 - [Comandos](#comandos)
 - [Configuración](#configuración)
+- [Recetas](#recetas)
+- [Cómo depurar cuando algo no filtra](#cómo-depurar-cuando-algo-no-filtra)
+- [Contribuir](#contribuir)
 - [Migrar de v2](#migrar-de-v2-a-v3)
 
 ---
@@ -678,6 +683,242 @@ php artisan vendor:publish --tag=search-surge-config
 
 ---
 
+## Recetas
+
+Casos completos, para copiar y adaptar.
+
+### Un endpoint de listado, de principio a fin
+
+```php
+class IndexRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return $this->user()->can('viewAny', Deal::class);
+    }
+
+    public function handle()
+    {
+        return DealResource::collection(
+            SearchSurge::get(Deal::class, $this->all())
+        );
+    }
+}
+```
+
+```
+GET /deals?status=activo,pausado&price_min=100&created_at_start_date=2026-01-01
+          &orderBy=created_at&orderMode=desc&paginate=25&page=2
+```
+
+Sin escribir un filtro ya responde a `id`, `ids`, `id_not`, los rangos de fecha,
+el orden y la paginación. Los filtros propios son para lo que es tuyo.
+
+### Un autocompletado que no tumbe la base
+
+```php
+class NameFilter implements Filter
+{
+    public static array $keys = ['q'];
+
+    public static function apply(Builder $query, DataContainer $data)
+    {
+        // prefix(), no contains(): 15 ms frente a 27 s sobre 1M de filas.
+        return TextSearch::prefix($query, $data, 'q', ['name'], ['minLength' => 2]);
+    }
+}
+```
+
+```php
+// El paginador simple no necesita el total, así que se ahorra el COUNT.
+SearchSurge::get(Deal::class, $request->all(), ['paginator' => 'simple', 'perPage' => 10]);
+```
+
+### Un export que no se quede sin memoria
+
+```php
+class DealsExport implements FromView
+{
+    public function __construct(protected array $data) {}
+
+    public function view(): View
+    {
+        return view('excel.deals', [
+            // lazy() recorre por lotes: la RAM se mantiene plana aunque haya
+            // medio millón de filas.
+            'deals' => SearchSurge::lazy(Deal::class, $this->data),
+        ]);
+    }
+}
+```
+
+### Un listado con millones de filas
+
+```php
+SearchSurge::get(Deal::class, $request->all(), [
+    'paginator' => 'cursor',   // sin COUNT y sin OFFSET: coste plano
+    'columns' => ['id', 'name', 'status', 'created_at'],
+    'with' => ['advertiser:id,name'],
+]);
+```
+
+Si necesitas el total, deja `length_aware` y añade `'countCache' => 30`.
+
+### Buscar con Elasticsearch sin sacar los permisos de la base
+
+```php
+class SearchFilter extends EngineFilter
+{
+    protected static function limit(): int
+    {
+        return 500;
+    }
+}
+```
+
+El motor devuelve los ids por relevancia; SQL aplica los filtros exactos y el
+`ManagedFilter`. Los permisos nunca salen de la base de datos.
+
+### Filtrar por una relación
+
+```php
+class AdvertiserFilter implements Filter
+{
+    public static array $keys = [
+        'advertiser_id',                                     // la vía rápida
+        ...RelationFilterQuery::keys('advertiser', ['country']),
+    ];
+
+    public static function apply(Builder $query, DataContainer $data)
+    {
+        // Si la clave foránea está en tu tabla, úsala: 0,3 ms frente a 8,2 ms.
+        SetFilterQuery::apply($query, $data, 'advertiser_id');
+
+        // La relación, solo para columnas que viven al otro lado.
+        return RelationFilterQuery::column($query, $data, 'advertiser', 'country');
+    }
+}
+```
+
+---
+
+## Cómo depurar cuando algo no filtra
+
+Por orden, de lo más probable a lo menos.
+
+**1. ¿Se está aplicando tu filtro?**
+
+```bash
+php artisan search-surge:filters "App\Models\Deal"
+```
+
+Lista los filtros resueltos, en qué orden y con qué claves. Si el tuyo no
+aparece, el problema es de descubrimiento: comprueba que está en
+`App\Models\Filters\Deal\` y que la clase tiene un método estático `apply`.
+
+**2. ¿Le llega el parámetro?**
+
+```bash
+php artisan search-surge:filters "App\Models\Deal" --json
+```
+
+Da la lista de parámetros que acepta el endpoint. Si mandas `?nombre=` y la lista
+dice `name`, ahí está.
+
+```php
+SearchSurge::unknownParameters(Deal::class, $request->all());  // ['nombre']
+```
+
+**3. ¿El filtro se está saltando por `$keys`?**
+
+Si declaras `$keys` y no incluyes todas las claves que lees, el filtro no se
+ejecuta cuando llega solo la que olvidaste. El caso clásico es olvidar
+`Order::KEYS` en un filtro que también ordena.
+
+**4. ¿Qué SQL sale?**
+
+```bash
+php artisan search-surge:explain "App\Models\Deal" --data='{"q":"zapato"}' --sql
+```
+
+**5. ¿Por qué va lento?**
+
+```bash
+php artisan search-surge:explain "App\Models\Deal" --data='{"q":"zapato"}' --time
+```
+
+Da el plan de ejecución, mide los datos frente al `COUNT(*)` y dice qué no va a
+escalar y por qué.
+
+**6. ¿Se está tragando una excepción?**
+
+Por defecto, un filtro que falla se registra en el log y la búsqueda sigue. Para
+que reviente y lo veas:
+
+```php
+SearchSurge::get(Deal::class, $data, ['strict' => true]);
+```
+
+**7. ¿Cambiaste un filtro y no se refleja?**
+
+En producción el descubrimiento se cachea. Si compilaste el manifiesto:
+
+```bash
+php artisan search-surge:clear
+```
+
+---
+
+## Contribuir
+
+```bash
+git clone https://github.com/innoboxrr/search-surge.git
+cd search-surge
+composer install
+composer check      # estilo + análisis estático + tests
+```
+
+`composer check` es exactamente lo que corre CI: si pasa en local, pasa allí.
+
+### La suite
+
+```bash
+composer test                        # SQLite, rápido
+composer coverage                    # con informe (necesita pcov o xdebug)
+DB_CONNECTION=mysql composer test    # contra MySQL
+DB_CONNECTION=pgsql composer test    # contra PostgreSQL
+```
+
+Se corre sobre los tres motores porque el paquete adapta el SQL a cada uno. No es
+teórico: correr la suite sobre MySQL destapó **dos fallos del analizador** que
+llevaban ahí desde el primer día, porque sus expresiones regulares solo
+contemplaban el entrecomillado de SQLite.
+
+Si tu afirmación depende de la forma del SQL, usa `assertSqlHas()` en lugar de
+`assertStringContainsString()`: normaliza el entrecomillado y así vale para los
+tres motores.
+
+### Qué se exige para entrar
+
+CI bloquea la publicación si algo de esto falla:
+
+| | |
+|---|---|
+| Estilo | Pint, preset de Laravel |
+| Análisis estático | PHPStan nivel 5 con larastan, sin errores |
+| Cobertura | mínimo del 88% de líneas |
+| Tests | 4 combinaciones de PHP y Laravel, más MySQL y PostgreSQL |
+
+Y el tag se crea **después** de que todo eso pase: el workflow de versionado
+cuelga del resultado de los tests, no del push.
+
+### Versionado
+
+El tag lo crea CI leyendo el último mensaje de commit: `#major`, `#minor`, o
+patch si no hay marcador.
+
+---
+
 ## Migrar de v2 a v3
 
 **No hay que tocar nada para que siga funcionando.** `new Builder()`,
@@ -710,8 +951,11 @@ composer install
 composer check     # estilo + analisis estatico + tests
 ```
 
-381 tests sobre Laravel 12 y 13, PHPStan (con larastan) sin errores y Pint
-sobre todo el codigo. CI corre las tres cosas. Incluyen inyección en todas las superficies
+464 tests sobre SQLite, MySQL y PostgreSQL, con 4 combinaciones de PHP y
+Laravel. 91% de cobertura de lineas, PHPStan sin errores y Pint sobre todo el
+codigo.
+
+Ver [Contribuir](#contribuir) para el detalle. Incluyen inyección en todas las superficies
 de entrada, filtros que devuelven basura o lanzan, manifiestos corruptos,
 paginación con empates y un recorrido completo por HTTP.
 
