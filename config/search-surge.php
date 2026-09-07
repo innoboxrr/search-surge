@@ -1,5 +1,9 @@
 <?php
 
+use Innoboxrr\SearchSurge\Search\Filters\Common\IdFilter;
+use Innoboxrr\SearchSurge\Search\Filters\Common\SoftDeletesFilter;
+use Innoboxrr\SearchSurge\Search\Filters\Common\TimestampsFilter;
+
 return [
 
     /*
@@ -50,10 +54,27 @@ return [
         'suffix' => 'Filters',
 
         /*
+        | Filtros genéricos que se añaden a TODOS los modelos, para que uno
+        | nuevo responda a ?id=, ?ids=, ?created_at_start_date= y ?trashed= sin
+        | crear un solo archivo.
+        |
+        | Cada uno se descarta si el modelo ya tiene algo equivalente: mismo
+        | nombre corto de clase, o claves declaradas que se solapan. Un modelo
+        | con su propio IdFilter no recibe el comun.
+        |
+        | Ponlo a [] para desactivarlos del todo.
+        */
+        'defaults' => [
+            IdFilter::class,
+            TimestampsFilter::class,
+            SoftDeletesFilter::class,
+        ],
+
+        /*
         | Último recurso, para apps que no siguen ninguna convención.
         */
         'namespace' => 'App\\Models\\Filters',
-        'path' => 'app' . DIRECTORY_SEPARATOR . 'Models' . DIRECTORY_SEPARATOR . 'Filters',
+        'path' => 'app'.DIRECTORY_SEPARATOR.'Models'.DIRECTORY_SEPARATOR.'Filters',
 
     ],
 

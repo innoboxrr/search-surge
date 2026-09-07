@@ -3,6 +3,7 @@
 namespace Innoboxrr\SearchSurge\Search\Support;
 
 use Illuminate\Contracts\Cache\Factory as CacheFactory;
+use Illuminate\Contracts\Cache\Repository;
 use Illuminate\Contracts\Config\Repository as ConfigRepository;
 use Illuminate\Contracts\Foundation\Application;
 
@@ -15,6 +16,12 @@ use Illuminate\Contracts\Foundation\Application;
  */
 class FilterRegistry
 {
+    /**
+     * Claves de control que declara casi cualquier filtro y que por tanto no
+     * sirven para decidir si dos filtros hacen lo mismo.
+     */
+    protected const CONTROL_KEYS = ['orderBy', 'orderMode', 'operator'];
+
     /**
      * Filtros declarados explícitamente. modelo FQCN => lista de filtros.
      *
@@ -48,8 +55,7 @@ class FilterRegistry
         protected Application $app,
         protected ConfigRepository $config,
         protected CacheFactory $cache,
-    ) {
-    }
+    ) {}
 
     /* -----------------------------------------------------------------
      | Registro público
@@ -155,7 +161,7 @@ class FilterRegistry
     protected function forgetMemo(string $model): void
     {
         foreach (array_keys($this->memo) as $key) {
-            if ($key === $model || str_starts_with($key, $model . '|')) {
+            if ($key === $model || str_starts_with($key, $model.'|')) {
                 unset($this->memo[$key]);
             }
         }
@@ -181,7 +187,9 @@ class FilterRegistry
             return $this->memo[$key];
         }
 
-        return $this->memo[$key] = $this->sort($this->discover($model, $options));
+        return $this->memo[$key] = $this->sort(
+            $this->withDefaults($this->discover($model, $options), $options)
+        );
     }
 
     /**
@@ -224,6 +232,90 @@ class FilterRegistry
     }
 
     /**
+     * Anade los filtros comunes que el modelo no cubra ya por su cuenta.
+     *
+     * Son filtros genericos -clave primaria, timestamps, borrado logico- que
+     * funcionan sobre cualquier modelo leyendo su configuracion. Con ellos, un
+     * modelo nuevo responde a ?id=, ?ids=, ?created_at_start_date= y ?trashed=
+     * sin que crees un solo archivo.
+     *
+     * Un comun se descarta si el modelo ya tiene algo equivalente. Se considera
+     * equivalente cuando comparten el nombre corto de clase, o cuando alguna de
+     * las claves que declaran se solapa. Sin esa segunda regla, un modelo con
+     * CreationFilter y UpdatedFilter propios recibiria ademas el
+     * TimestampsFilter comun y las condiciones de fecha se duplicarian.
+     *
+     * @param array<int, class-string> $filters
+     * @param array<string, mixed> $options
+     * @return array<int, class-string>
+     */
+    protected function withDefaults(array $filters, array $options): array
+    {
+        // Una lista explicita en la llamada significa "exactamente estos".
+        // Colar ahi filtros que el desarrollador no ha pedido seria una
+        // sorpresa desagradable justo en el sitio donde mas control esperaba.
+        // Los declarados a nivel de modelo (registro, manifiesto, convencion)
+        // si los reciben: ahi lo que se declara es el conjunto del modelo, no
+        // una lista cerrada para esta consulta.
+        if (! empty($options['filters'])) {
+            return $filters;
+        }
+
+        $defaults = $this->qualify(
+            (array) ($options['defaults'] ?? $this->config->get('search-surge.filters.defaults', [])),
+            null
+        );
+
+        if ($defaults === []) {
+            return $filters;
+        }
+
+        $names = array_map('class_basename', $filters);
+        $claimed = $this->claimedKeys($filters);
+
+        foreach ($defaults as $default) {
+            if (in_array(class_basename($default), $names, true)) {
+                continue;
+            }
+
+            $keys = array_diff(FilterMeta::keys($default) ?? [], self::CONTROL_KEYS);
+
+            if (array_intersect($keys, $claimed) !== []) {
+                continue;
+            }
+
+            $filters[] = $default;
+            $claimed = array_merge($claimed, $keys);
+        }
+
+        return array_values(array_unique($filters));
+    }
+
+    /**
+     * Las claves que ya reclama algun filtro del modelo.
+     *
+     * Las de ordenamiento se excluyen porque casi todos los filtros las
+     * declaran: si contaran, ningun comun entraria nunca.
+     *
+     * @param array<int, class-string> $filters
+     * @return array<int, string>
+     */
+    protected function claimedKeys(array $filters): array
+    {
+        $claimed = [];
+
+        foreach ($filters as $filter) {
+            $keys = FilterMeta::keys($filter);
+
+            if ($keys !== null) {
+                $claimed = array_merge($claimed, $keys);
+            }
+        }
+
+        return array_values(array_diff(array_unique($claimed), self::CONTROL_KEYS));
+    }
+
+    /**
      * Escanea el primer directorio candidato que exista.
      *
      * @param class-string $model
@@ -239,7 +331,7 @@ class FilterRegistry
         }
 
         $cacheKey = $this->config->get('search-surge.cache.prefix', 'search-surge:filters:')
-            . sha1($model . '|' . json_encode(array_map(
+            .sha1($model.'|'.json_encode(array_map(
                 static fn (array $c): array => [$c['namespace'], $c['directory']],
                 $candidates
             )));
@@ -302,17 +394,17 @@ class FilterRegistry
         if (! empty($options['filtersPath'])) {
             $namespace = trim((string) ($options['filtersNamespace']
                 ?? $this->config->get('search-surge.filters.namespace', 'App\\Models\\Filters')), '\\')
-                . '\\' . $shortName;
+                .'\\'.$shortName;
 
-            $base = $options['basePath'] ?? (function_exists('base_path') ? base_path() . DIRECTORY_SEPARATOR : '');
+            $base = $options['basePath'] ?? (function_exists('base_path') ? base_path().DIRECTORY_SEPARATOR : '');
 
-            $push($namespace, $base . trim((string) $options['filtersPath'], DIRECTORY_SEPARATOR)
-                . DIRECTORY_SEPARATOR . $shortName);
+            $push($namespace, $base.trim((string) $options['filtersPath'], DIRECTORY_SEPARATOR)
+                .DIRECTORY_SEPARATOR.$shortName);
         }
 
         // Namespace explícito en las opciones: la ruta la deduce Composer.
         if (! empty($options['filtersNamespace'])) {
-            $namespace = trim((string) $options['filtersNamespace'], '\\') . '\\' . $shortName;
+            $namespace = trim((string) $options['filtersNamespace'], '\\').'\\'.$shortName;
             $push($namespace, ComposerLocator::directoryFor($namespace));
         }
 
@@ -321,8 +413,8 @@ class FilterRegistry
         uksort($namespaces, static fn (string $a, string $b): int => strlen($b) <=> strlen($a));
 
         foreach ($namespaces as $modelPrefix => $filtersPrefix) {
-            if ($modelNamespace === $modelPrefix || str_starts_with($modelNamespace . '\\', $modelPrefix . '\\')) {
-                $namespace = $filtersPrefix . '\\' . $shortName;
+            if ($modelNamespace === $modelPrefix || str_starts_with($modelNamespace.'\\', $modelPrefix.'\\')) {
+                $namespace = $filtersPrefix.'\\'.$shortName;
                 $push($namespace, ComposerLocator::directoryFor($namespace));
             }
         }
@@ -331,7 +423,7 @@ class FilterRegistry
         $suffix = trim((string) $this->config->get('search-surge.filters.suffix', 'Filters'), '\\');
 
         if ($modelNamespace !== '' && $suffix !== '') {
-            $namespace = $modelNamespace . '\\' . $suffix . '\\' . $shortName;
+            $namespace = $modelNamespace.'\\'.$suffix.'\\'.$shortName;
             $push($namespace, ComposerLocator::directoryFor($namespace));
         }
 
@@ -339,14 +431,14 @@ class FilterRegistry
         $fallbackNamespace = trim((string) $this->config->get('search-surge.filters.namespace', ''), '\\');
 
         if ($fallbackNamespace !== '') {
-            $namespace = $fallbackNamespace . '\\' . $shortName;
+            $namespace = $fallbackNamespace.'\\'.$shortName;
             $push($namespace, ComposerLocator::directoryFor($namespace));
 
             $fallbackPath = (string) $this->config->get('search-surge.filters.path', '');
 
             if ($fallbackPath !== '' && function_exists('base_path')) {
                 $push($namespace, base_path(trim($fallbackPath, DIRECTORY_SEPARATOR)
-                    . DIRECTORY_SEPARATOR . $shortName));
+                    .DIRECTORY_SEPARATOR.$shortName));
             }
         }
 
@@ -364,7 +456,7 @@ class FilterRegistry
             return [];
         }
 
-        $files = glob($directory . DIRECTORY_SEPARATOR . '*.php') ?: [];
+        $files = glob($directory.DIRECTORY_SEPARATOR.'*.php') ?: [];
 
         // glob no garantiza orden en todos los sistemas de archivos.
         sort($files, SORT_STRING);
@@ -372,7 +464,7 @@ class FilterRegistry
         $classes = [];
 
         foreach ($files as $file) {
-            $class = $namespace . '\\' . basename($file, '.php');
+            $class = $namespace.'\\'.basename($file, '.php');
 
             if ($this->isFilter($class)) {
                 $classes[] = $class;
@@ -398,7 +490,7 @@ class FilterRegistry
             $filter = ltrim((string) $filter, '\\');
 
             if (! str_contains($filter, '\\') && $namespace !== null && $shortName !== null) {
-                $filter = trim($namespace, '\\') . '\\' . $shortName . '\\' . $filter;
+                $filter = trim($namespace, '\\').'\\'.$shortName.'\\'.$filter;
             }
 
             if ($this->isFilter($filter)) {
@@ -491,10 +583,10 @@ class FilterRegistry
     public function manifestPath(): string
     {
         if ($this->app->bound('path.bootstrap')) {
-            return $this->app->bootstrapPath('cache' . DIRECTORY_SEPARATOR . 'search-surge.php');
+            return $this->app->bootstrapPath('cache'.DIRECTORY_SEPARATOR.'search-surge.php');
         }
 
-        return $this->app->storagePath('framework' . DIRECTORY_SEPARATOR . 'search-surge.php');
+        return $this->app->storagePath('framework'.DIRECTORY_SEPARATOR.'search-surge.php');
     }
 
     protected function cacheEnabled(): bool
@@ -510,7 +602,7 @@ class FilterRegistry
         return (bool) $enabled;
     }
 
-    protected function store(): \Illuminate\Contracts\Cache\Repository
+    protected function store(): Repository
     {
         return $this->cache->store($this->config->get('search-surge.cache.store'));
     }
@@ -527,7 +619,7 @@ class FilterRegistry
             isset($options['filters']) ? implode(',', (array) $options['filters']) : null,
         ]);
 
-        return $relevant === [] ? $model : $model . '|' . implode('|', $relevant);
+        return $relevant === [] ? $model : $model.'|'.implode('|', $relevant);
     }
 
     protected function namespaceOf(string $class): string
