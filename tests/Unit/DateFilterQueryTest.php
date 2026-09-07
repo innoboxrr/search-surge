@@ -38,7 +38,7 @@ class DateFilterQueryTest extends TestCase
         // strftime/date sobre la columna es lo que impedia usar el indice.
         $this->assertStringNotContainsStringIgnoringCase('strftime', $sql);
         $this->assertStringNotContainsStringIgnoringCase('date(', $sql);
-        $this->assertStringContainsString('"test_models"."created_at"', $sql);
+        $this->assertSqlHas('test_models.created_at', $sql);
     }
 
     public static function operadores(): array
@@ -57,8 +57,8 @@ class DateFilterQueryTest extends TestCase
         ]));
 
         $this->assertStringNotContainsStringIgnoringCase('strftime', $query->toSql());
-        $this->assertStringContainsString('"test_models"."created_at" >= ?', $query->toSql());
-        $this->assertStringContainsString('"test_models"."created_at" < ?', $query->toSql());
+        $this->assertSqlHas('test_models.created_at >= ?', $query->toSql());
+        $this->assertSqlHas('test_models.created_at < ?', $query->toSql());
     }
 
     /* -----------------------------------------------------------------
@@ -154,8 +154,8 @@ class DateFilterQueryTest extends TestCase
 
         $sql = $query->toSql();
 
-        $this->assertStringContainsString('"test_models"."created_at" >= ?', $sql);
-        $this->assertStringContainsString('"test_models"."updated_at" < ?', $sql);
+        $this->assertSqlHas('test_models.created_at >= ?', $sql);
+        $this->assertSqlHas('test_models.updated_at < ?', $sql);
     }
 
     /* -----------------------------------------------------------------
@@ -171,7 +171,7 @@ class DateFilterQueryTest extends TestCase
             'updated_at_end_date' => '2026-01-31',
         ]))->toSql();
 
-        $this->assertStringContainsString('"test_models"."updated_at"', $sql);
+        $this->assertSqlHas('test_models.updated_at', $sql);
         $this->assertStringNotContainsString('created_at', $sql);
     }
 

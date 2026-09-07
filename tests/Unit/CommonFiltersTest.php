@@ -107,8 +107,8 @@ class CommonFiltersTest extends TestCase
             'created_at_end_date' => '2026-01-31',
         ])->toSql();
 
-        $this->assertSame(1, substr_count($sql, '"test_models"."created_at" >= ?'));
-        $this->assertSame(1, substr_count($sql, '"test_models"."created_at" < ?'));
+        $this->assertSame(1, $this->sqlCount('test_models.created_at >= ?', $sql));
+        $this->assertSame(1, $this->sqlCount('test_models.created_at < ?', $sql));
     }
 
     #[Test]

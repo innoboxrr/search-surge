@@ -118,7 +118,7 @@ class QueryUtilsTest extends TestCase
             'operator' => '==',
         ]), 'price')->toSql();
 
-        $this->assertStringContainsString('"test_models"."price" > ?', $sql);
+        $this->assertSqlHas('test_models.price > ?', $sql);
     }
 
     #[Test]

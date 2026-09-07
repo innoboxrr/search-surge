@@ -80,8 +80,8 @@ class SecurityTest extends TestCase
             ]), 'name')->toSql();
 
             $this->assertMatchesRegularExpression(
-                '/order by "name" (asc|desc)$/',
-                $sql,
+                '/order by name (asc|desc)$/',
+                $this->sqlOf($sql),
                 'orderMode se colo en el SQL: '.$sql
             );
         }
@@ -158,7 +158,7 @@ class SecurityTest extends TestCase
             ->query(TestModel::class, [], ['columns' => ['test_models.id', 'name']])
             ->toSql();
 
-        $this->assertStringContainsString('"test_models"."id"', $sql);
+        $this->assertSqlHas('test_models.id', $sql);
     }
 
     /* -----------------------------------------------------------------

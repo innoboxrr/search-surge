@@ -44,7 +44,7 @@ class ManagedTest extends TestCase
 
         $sql = $this->builder()->query(TestModel::class, ['managed' => true])->toSql();
 
-        $this->assertStringContainsString('"owner_id" = ?', $sql);
+        $this->assertSqlHas('owner_id = ?', $sql);
     }
 
     #[Test]
@@ -78,7 +78,7 @@ class ManagedTest extends TestCase
             'except_view_any' => 'false',
         ])->toSql();
 
-        $this->assertStringContainsString('"owner_id" = ?', $sql);
+        $this->assertSqlHas('owner_id = ?', $sql);
     }
 
     #[Test]
@@ -108,7 +108,7 @@ class ManagedTest extends TestCase
             'except_view_any' => true,
         ])->toSql();
 
-        $this->assertStringContainsString('"owner_id" = ?', $sql);
+        $this->assertSqlHas('owner_id = ?', $sql);
     }
 
     #[Test]

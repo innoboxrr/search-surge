@@ -55,8 +55,8 @@ class HasSearchSurgeTest extends TestCase
             ->surge(['name' => 'ana'])
             ->toSql();
 
-        $this->assertStringContainsString('"owner_id" = ?', $sql);
-        $this->assertStringContainsString('"name" like ?', $sql);
+        $this->assertSqlHas('owner_id = ?', $sql);
+        $this->assertSqlHas('name like ?', $sql);
     }
 
     #[Test]

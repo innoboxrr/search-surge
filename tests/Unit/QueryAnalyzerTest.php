@@ -128,7 +128,18 @@ class QueryAnalyzerTest extends TestCase
     {
         $codes = $this->codes(TestModel::query()->where('name', 'like', '%x%'));
 
-        $this->assertContains('plan.scan', $codes);
+        // Cada motor nombra el hallazgo a su manera, pero los tres tienen que
+        // darse cuenta de que esta consulta recorre la tabla entera.
+        $esperado = match (static::driver()) {
+            'mysql', 'mariadb' => ['plan.full_table_scan', 'plan.full_index_scan'],
+            'pgsql' => ['plan.seq_scan'],
+            default => ['plan.scan'],
+        };
+
+        $this->assertNotEmpty(
+            array_intersect($esperado, $codes),
+            'El analizador no vio el scan. Codigos: '.implode(', ', $codes)
+        );
     }
 
     #[Test]
@@ -149,7 +160,16 @@ class QueryAnalyzerTest extends TestCase
         $rows = $this->analyzer()->explain(TestModel::query()->where('id', 1));
 
         $this->assertNotEmpty($rows);
-        $this->assertArrayHasKey('detail', $rows[0]);
+
+        // La forma del plan es cosa de cada motor; lo que se comprueba es que
+        // la sintaxis del EXPLAIN es la correcta y devuelve algo utilizable.
+        $clave = match (static::driver()) {
+            'mysql', 'mariadb' => 'table',
+            'pgsql' => 'QUERY PLAN',
+            default => 'detail',
+        };
+
+        $this->assertArrayHasKey($clave, $rows[0]);
     }
 
     #[Test]
@@ -248,6 +268,8 @@ class QueryAnalyzerTest extends TestCase
     #[Test]
     public function el_comando_puede_mostrar_solo_el_sql(): void
     {
+        $this->skipUnlessSqlite();
+
         $this->artisan('search-surge:explain', [
             'model' => TestModel::class,
             '--sql' => true,

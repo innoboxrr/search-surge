@@ -97,8 +97,8 @@ class ScaleTest extends TestCase
             ->query(TestModel::class, ['orderBy' => 'created_at', 'orderMode' => 'desc'])
             ->toSql();
 
-        $this->assertStringContainsString('order by "created_at" desc', $sql);
-        $this->assertStringContainsString('"test_models"."id" desc', $sql);
+        $this->assertSqlHas('order by created_at desc', $sql);
+        $this->assertSqlHas('test_models.id desc', $sql);
     }
 
     #[Test]
@@ -118,7 +118,7 @@ class ScaleTest extends TestCase
             ->query(TestModel::class, ['orderBy' => 'id', 'orderMode' => 'asc'])
             ->toSql();
 
-        $this->assertSame(1, substr_count($sql, '"id"'), 'La clave se anadio dos veces al ORDER BY.');
+        $this->assertSame(1, $this->sqlCount('id', $sql), 'La clave se anadio dos veces al ORDER BY.');
     }
 
     #[Test]
@@ -130,7 +130,7 @@ class ScaleTest extends TestCase
             ->query(TestModel::class, ['orderBy' => 'created_at'])
             ->toSql();
 
-        $this->assertStringNotContainsString('"test_models"."id"', $sql);
+        $this->assertSqlMissing('test_models.id', $sql);
     }
 
     #[Test]
@@ -140,7 +140,7 @@ class ScaleTest extends TestCase
             ->query(TestModel::class, ['orderBy' => 'created_at', 'orderMode' => 'desc'])
             ->toSql();
 
-        $this->assertStringContainsString('"test_models"."id" desc', $sql);
+        $this->assertSqlHas('test_models.id desc', $sql);
     }
 
     /* -----------------------------------------------------------------

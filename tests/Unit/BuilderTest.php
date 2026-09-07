@@ -207,7 +207,7 @@ class BuilderTest extends TestCase
             'filters' => [MutatingFilter::class],
         ]);
 
-        $this->assertStringContainsString('"name" = ?', $query->toSql());
+        $this->assertSqlHas('name = ?', $query->toSql());
     }
 
     #[Test]
@@ -262,7 +262,7 @@ class BuilderTest extends TestCase
         // Sin 'filters' en la segunda llamada, debe volver a la convencion.
         $query = $builder->query(TestModel::class, ['paginate' => 0]);
 
-        $this->assertStringNotContainsString('"name" like ?', $query->toSql());
+        $this->assertSqlMissing('name like ?', $query->toSql());
     }
 
     #[Test]
@@ -399,7 +399,7 @@ class BuilderTest extends TestCase
             ->query(TestModel::class, [], ['columns' => ['id', 'name']])
             ->toSql();
 
-        $this->assertStringContainsString('select "id", "name"', $sql);
+        $this->assertSqlHas('select id, name', $sql);
     }
 
     #[Test]
@@ -409,7 +409,7 @@ class BuilderTest extends TestCase
             ->query(TestModel::class, [], ['columns' => ['id', '(select 1)']])
             ->toSql();
 
-        $this->assertStringContainsString('select "id"', $sql);
+        $this->assertSqlHas('select id', $sql);
         $this->assertStringNotContainsString('select 1', $sql);
     }
 
@@ -436,6 +436,6 @@ class BuilderTest extends TestCase
             'query' => TestModel::query()->where('owner_id', 7),
         ])->toSql();
 
-        $this->assertStringContainsString('"owner_id" = ?', $sql);
+        $this->assertSqlHas('owner_id = ?', $sql);
     }
 }

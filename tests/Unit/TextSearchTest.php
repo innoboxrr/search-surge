@@ -2,6 +2,7 @@
 
 namespace Innoboxrr\SearchSurge\Tests\Unit;
 
+use Illuminate\Support\Facades\DB;
 use Innoboxrr\SearchSurge\Search\Support\DataContainer;
 use Innoboxrr\SearchSurge\Search\Utils\TextSearch;
 use Innoboxrr\SearchSurge\Tests\Models\TestModel;
@@ -34,7 +35,7 @@ class TextSearchTest extends TestCase
         $query = TextSearch::prefix($this->newQuery(), new DataContainer(['q' => 'zapato']), 'q', ['name']);
 
         $this->assertSame(['zapato%'], $query->getBindings());
-        $this->assertStringContainsString('"test_models"."name" like ?', $query->toSql());
+        $this->assertSqlHas('test_models.name like ?', $query->toSql());
     }
 
     #[Test]
@@ -65,8 +66,8 @@ class TextSearchTest extends TestCase
 
         $sql = $query->toSql();
 
-        $this->assertStringContainsString('"test_models"."name" like ?', $sql);
-        $this->assertStringContainsString('or "test_models"."owner_id" like ?', $sql);
+        $this->assertSqlHas('test_models.name like ?', $sql);
+        $this->assertSqlHas('or test_models.owner_id like ?', $sql);
         $this->assertSame(['ana%', 'ana%'], $query->getBindings());
     }
 
@@ -83,7 +84,7 @@ class TextSearchTest extends TestCase
 
         $sql = $query->toSql();
 
-        $this->assertMatchesRegularExpression('/"owner_id" = \?.*\(\(.*or.*\)\)/s', $sql);
+        $this->assertMatchesRegularExpression('/owner_id = \?.*\(\(.*or.*\)\)/s', $this->sqlOf($sql));
     }
 
     #[Test]
@@ -410,14 +411,21 @@ class TextSearchTest extends TestCase
      | ----------------------------------------------------------------- */
 
     #[Test]
-    public function sqlite_no_soporta_texto_completo(): void
+    public function el_soporte_de_texto_completo_depende_del_motor(): void
     {
-        $this->assertFalse(TextSearch::supportsFullText($this->newQuery()));
+        $soporta = TextSearch::supportsFullText($this->newQuery());
+
+        $this->assertSame(
+            in_array(static::driver(), ['mysql', 'mariadb', 'pgsql'], true),
+            $soporta
+        );
     }
 
     #[Test]
-    public function fullText_degrada_a_contains_cuando_el_driver_no_lo_soporta(): void
+    public function donde_no_hay_texto_completo_se_degrada_a_contains(): void
     {
+        $this->skipUnlessSqliteParaDegradacion();
+
         $query = TextSearch::fullText(
             $this->newQuery(),
             new DataContainer(['q' => 'zapato']),
@@ -429,8 +437,10 @@ class TextSearchTest extends TestCase
     }
 
     #[Test]
-    public function fullText_puede_degradar_a_prefix(): void
+    public function la_degradacion_puede_ser_a_prefix(): void
     {
+        $this->skipUnlessSqliteParaDegradacion();
+
         $query = TextSearch::fullText(
             $this->newQuery(),
             new DataContainer(['q' => 'zapato']),
@@ -443,8 +453,10 @@ class TextSearchTest extends TestCase
     }
 
     #[Test]
-    public function fullText_puede_lanzar_en_vez_de_degradar(): void
+    public function la_degradacion_puede_lanzar_en_vez_de_ocurrir(): void
     {
+        $this->skipUnlessSqliteParaDegradacion();
+
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('no soporta busqueda de texto completo');
 
@@ -458,6 +470,87 @@ class TextSearchTest extends TestCase
     }
 
     #[Test]
+    public function donde_si_hay_texto_completo_se_usa_el_indice(): void
+    {
+        if (! TextSearch::supportsFullText($this->newQuery())) {
+            $this->markTestSkipped('El motor no soporta busqueda de texto completo.');
+        }
+
+        $sql = strtolower($this->sqlOf(TextSearch::fullText(
+            $this->newQuery(),
+            new DataContainer(['q' => 'zapato']),
+            'q',
+            ['name']
+        )));
+
+        // MySQL genera MATCH ... AGAINST; PostgreSQL, to_tsvector @@ tsquery.
+        $this->assertTrue(
+            str_contains($sql, 'match') || str_contains($sql, 'tsvector'),
+            'No se genero una consulta de texto completo: '.$sql
+        );
+
+        $this->assertStringNotContainsString('like', $sql);
+    }
+
+    #[Test]
+    public function el_texto_completo_encuentra_de_verdad(): void
+    {
+        if (! TextSearch::supportsFullText($this->newQuery())) {
+            $this->markTestSkipped('El motor no soporta busqueda de texto completo.');
+        }
+
+        // MySQL exige un indice FULLTEXT para poder ejecutar MATCH AGAINST.
+        if (in_array(static::driver(), ['mysql', 'mariadb'], true)) {
+            DB::statement(
+                'ALTER TABLE test_models ADD FULLTEXT ft_name (name)'
+            );
+        }
+
+        $this->seedNames(['zapato rojo grande', 'camisa azul']);
+
+        $names = TextSearch::fullText(
+            $this->newQuery(),
+            new DataContainer(['q' => 'zapato']),
+            'q',
+            ['name']
+        )->pluck('name')->all();
+
+        $this->assertSame(['zapato rojo grande'], $names);
+    }
+
+    #[Test]
+    public function usa_ilike_solo_en_postgresql(): void
+    {
+        $sql = strtolower($this->sqlOf(TextSearch::contains(
+            $this->newQuery(),
+            new DataContainer(['q' => 'ana']),
+            'q',
+            ['name']
+        )));
+
+        // En MySQL la collation ya hace LIKE insensible a mayusculas; en
+        // PostgreSQL no, asi que hace falta ILIKE para que se comporten igual.
+        static::driver() === 'pgsql'
+            ? $this->assertStringContainsString(' ilike ?', $sql)
+            : $this->assertStringContainsString(' like ?', $sql);
+    }
+
+    #[Test]
+    public function con_caseSensitive_nunca_se_usa_ilike(): void
+    {
+        $sql = strtolower($this->sqlOf(TextSearch::contains(
+            $this->newQuery(),
+            new DataContainer(['q' => 'ana']),
+            'q',
+            ['name'],
+            ['caseSensitive' => true]
+        )));
+
+        $this->assertStringContainsString(' like ?', $sql);
+        $this->assertStringNotContainsString('ilike', $sql);
+    }
+
+    #[Test]
     public function fullText_sin_termino_no_filtra_ni_degrada(): void
     {
         $sql = TextSearch::fullText(
@@ -468,5 +561,16 @@ class TextSearchTest extends TestCase
         )->toSql();
 
         $this->assertStringNotContainsString('where', strtolower($sql));
+    }
+
+    /**
+     * Las pruebas de degradacion solo tienen sentido donde no hay texto
+     * completo, que es justo el caso que la degradacion cubre.
+     */
+    protected function skipUnlessSqliteParaDegradacion(): void
+    {
+        if (TextSearch::supportsFullText($this->newQuery())) {
+            $this->markTestSkipped('El motor si soporta texto completo: no hay degradacion que probar.');
+        }
     }
 }
