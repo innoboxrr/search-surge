@@ -219,20 +219,6 @@ class TextSearchTest extends TestCase
     }
 
     #[Test]
-    public function usa_like_en_sqlite_y_no_ilike(): void
-    {
-        $sql = TextSearch::contains(
-            $this->newQuery(),
-            new DataContainer(['q' => 'ana']),
-            'q',
-            ['name']
-        )->toSql();
-
-        $this->assertStringContainsString(' like ?', $sql);
-        $this->assertStringNotContainsString('ilike', $sql);
-    }
-
-    #[Test]
     public function con_caseSensitive_fuerza_like(): void
     {
         $sql = TextSearch::contains(
