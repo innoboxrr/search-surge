@@ -72,7 +72,10 @@ class QueryAnalyzer
 
         // Un OR entre columnas distintas suele hacer que el motor abandone los
         // indices y recurra a un full scan.
-        if (preg_match_all('/\bor\s+"?[a-z_]+"?\."?[a-z_]+"?\s+(like|ilike)\s/i', $sql) > 0) {
+        // La clase de caracteres acepta comillas dobles y acentos graves: cada
+        // motor cita a su manera, y sin las dos formas este analisis solo
+        // funcionaba en SQLite y PostgreSQL, callando en MySQL.
+        if (preg_match_all('/\bor\s+[`"]?[a-z_]+[`"]?\.[`"]?[a-z_]+[`"]?\s+(like|ilike)\s/i', $sql) > 0) {
             $findings[] = $this->finding(
                 self::SEVERITY_WARNING,
                 'like.or_across_columns',
@@ -87,7 +90,7 @@ class QueryAnalyzer
         // cualificada: SQLite genera strftime('%Y-%m-%d', "col") y MySQL
         // date("tabla"."col"). CAST queda fuera a proposito: Laravel lo aplica
         // del lado del valor, no de la columna.
-        if (preg_match('/\b(date|strftime|lower|upper|coalesce|concat)\s*\([^)]*"[a-z_]+"(\."[a-z_]+")?\s*[,)]/i', $sql)) {
+        if (preg_match('/\b(date|strftime|lower|upper|coalesce|concat)\s*\([^)]*[`"][a-z_]+[`"](\.[`"][a-z_]+[`"])?\s*[,)]/i', $sql)) {
             $findings[] = $this->finding(
                 self::SEVERITY_WARNING,
                 'sql.function_on_column',
@@ -186,6 +189,15 @@ class QueryAnalyzer
             $examined = (int) ($row['rows'] ?? 0);
             $extra = strtolower((string) ($row['Extra'] ?? $row['extra'] ?? ''));
 
+            // MySQL puede resolver la consulta durante la optimizacion, sin
+            // llegar a leer la tabla: "no matching row in const table",
+            // "impossible where", "select tables optimized away". Ahi no hay
+            // plan que criticar —es el mejor resultado posible— y avisar de que
+            // "no usa ningun indice" seria justo al reves.
+            if ($this->resueltaSinLeer($extra)) {
+                continue;
+            }
+
             if ($type === 'all') {
                 $findings[] = $this->finding(
                     self::SEVERITY_CRITICAL,
@@ -231,6 +243,20 @@ class QueryAnalyzer
         }
 
         return $findings;
+    }
+
+    /**
+     * ¿MySQL resolvio la consulta sin llegar a leer la tabla?
+     */
+    protected function resueltaSinLeer(string $extra): bool
+    {
+        foreach (['no matching row', 'impossible where', 'optimized away', 'no tables used'] as $senal) {
+            if (str_contains($extra, $senal)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
