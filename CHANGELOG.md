@@ -20,6 +20,16 @@ Este proyecto sigue [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Pruebas de las ramas que quedaban sin recorrer: los "no hay nada que hacer"
   de los comandos, los limites de la paginacion y los caminos de degradacion.
 
+### Fixed
+
+- **La suite agotaba las conexiones de PostgreSQL** (`sorry, too many clients
+  already`). Cada prueba levanta su propia aplicacion y con ella su conexion, y
+  ninguna se cerraba: PostgreSQL admite 100 por defecto y la suite tiene casi
+  500 pruebas. Sobre SQLite en memoria no se veia, porque mueren con el proceso.
+- **El marcador de version tiene que ir en su propia linea.** Buscarlo en
+  cualquier parte del mensaje hacia que mencionarlo de pasada disparara el salto
+  de version, que es como se publico `innoboxrr/traits` 2.0.0 sin quererlo.
+
 ### Changed
 
 - `.gitattributes` deja fuera del archivo de distribucion los tests, la
