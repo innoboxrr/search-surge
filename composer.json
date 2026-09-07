@@ -56,6 +56,8 @@
     },
     "scripts": {
         "test": "vendor/bin/phpunit --no-coverage",
+        "test:mysql": "@php -r \"putenv('DB_CONNECTION=mysql');\" && vendor/bin/phpunit --no-coverage",
+        "coverage": "vendor/bin/phpunit --coverage-text",
         "lint": "vendor/bin/pint",
         "lint:test": "vendor/bin/pint --test",
         "analyse": "vendor/bin/phpstan analyse --no-progress",
@@ -68,7 +70,8 @@
     "minimum-stability": "stable",
     "prefer-stable": true,
     "scripts-descriptions": {
-        "test": "Ejecuta la suite de tests",
+        "test": "Ejecuta la suite sobre SQLite",
+        "coverage": "Suite con informe de cobertura (necesita pcov o xdebug)",
         "lint": "Aplica el estilo de codigo",
         "lint:test": "Comprueba el estilo sin modificar nada",
         "analyse": "Analisis estatico con PHPStan",
