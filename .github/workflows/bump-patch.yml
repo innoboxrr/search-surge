@@ -9,9 +9,16 @@ jobs:
     bump-version:
         runs-on: ubuntu-latest
 
+        # Sin esto el workflow no puede crear el tag. Desde 2023 el GITHUB_TOKEN
+        # es de solo lectura por defecto, asi que el push fallaba con un 403
+        # "Permission to ... denied to github-actions[bot]". Llevaba fallando en
+        # silencio desde que se creo el workflow: ningun tag se llego a crear.
+        permissions:
+            contents: write
+
         steps:
             - name: Checkout code
-              uses: actions/checkout@v3
+              uses: actions/checkout@v4
               with:
                   fetch-depth: 0  # Necesario para obtener todos los tags
 
