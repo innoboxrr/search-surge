@@ -37,7 +37,21 @@ class MakeFilterCommand extends Command
         }
 
         $modelName = class_basename($model);
-        $modelNamespace = substr($model, 0, (int) strrpos($model, '\\'));
+        $separador = strrpos($model, '\\');
+
+        // Sin namespace no hay convención de la que colgar los filtros. Pasa con
+        // las clases anónimas, cuyo nombre lleva dentro la ruta del archivo:
+        // deducir un directorio de ahí acabaría escribiendo en cualquier sitio,
+        // y encima el resultado dependería del separador del sistema.
+        if ($separador === false) {
+            $this->components->error(
+                "La clase [{$model}] no tiene namespace, asi que no hay donde aplicar la convencion."
+            );
+
+            return self::FAILURE;
+        }
+
+        $modelNamespace = substr($model, 0, $separador);
         $suffix = (string) config('search-surge.filters.suffix', 'Filters');
         $namespace = $modelNamespace.'\\'.$suffix.'\\'.$modelName;
 
