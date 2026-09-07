@@ -1,7 +1,27 @@
 {
     "name": "innoboxrr/search-surge",
+    "description": "Filtrado, ordenamiento y paginacion declarativa para modelos Eloquent. Auto-descubre filtros por convencion, funciona igual dentro de una app o dentro de un paquete de Laravel.",
+    "keywords": ["laravel", "eloquent", "search", "filter", "query", "pagination"],
     "type": "library",
     "license": "MIT",
+    "authors": [
+        {
+            "name": "Homero Raul",
+            "email": "h.raulvc@gmail.com"
+        }
+    ],
+    "require": {
+        "php": "^8.2",
+        "illuminate/console": "^11.0|^12.0|^13.0",
+        "illuminate/contracts": "^11.0|^12.0|^13.0",
+        "illuminate/database": "^11.0|^12.0|^13.0",
+        "illuminate/support": "^11.0|^12.0|^13.0"
+    },
+    "require-dev": {
+        "mockery/mockery": "^1.6",
+        "orchestra/testbench": "^9.0|^10.0|^11.0",
+        "phpunit/phpunit": "^10.5|^11.0|^12.0"
+    },
     "autoload": {
         "psr-4": {
             "Innoboxrr\\SearchSurge\\": "src/"
@@ -12,13 +32,6 @@
             "Innoboxrr\\SearchSurge\\Tests\\": "tests/"
         }
     },
-    "authors": [
-        {
-            "name": "Homero Raul",
-            "email": "h.raulvc@gmail.com"
-        }
-    ],
-    "minimum-stability": "stable",
     "extra": {
         "laravel": {
             "providers": [
@@ -29,8 +42,12 @@
             }
         }
     },
-    "require-dev": {
-        "orchestra/testbench": "^7.0 | ^8.0",
-        "phpunit/phpunit": "^9.5 | ^10.0"
-    }
+    "config": {
+        "sort-packages": true
+    },
+    "scripts": {
+        "test": "vendor/bin/phpunit"
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
 }
