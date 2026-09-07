@@ -3,6 +3,8 @@
 namespace Innoboxrr\SearchSurge\Search\Utils;
 
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
+use Innoboxrr\SearchSurge\Search\Support\Driver;
 
 /**
  * Conserva el orden por relevancia que devuelve un motor de búsqueda.
@@ -21,9 +23,9 @@ class Relevance
     /**
      * Ordena la consulta según la posición de cada id en la lista.
      *
-     * @param Builder<\Illuminate\Database\Eloquent\Model> $query
+     * @param Builder<Model> $query
      * @param array<int, int|string> $ids En orden de relevancia descendente.
-     * @return Builder<\Illuminate\Database\Eloquent\Model>
+     * @return Builder<Model>
      */
     public static function order(Builder $query, array $ids, ?string $column = null): Builder
     {
@@ -51,9 +53,9 @@ class Relevance
      * Con una lista vacía, whereIn genera `0 = 1`: el motor no encontró nada y
      * la consulta debe devolver cero filas, no todas.
      *
-     * @param Builder<\Illuminate\Database\Eloquent\Model> $query
+     * @param Builder<Model> $query
      * @param array<int, int|string> $ids
-     * @return Builder<\Illuminate\Database\Eloquent\Model>
+     * @return Builder<Model>
      */
     public static function constrain(Builder $query, array $ids, ?string $column = null): Builder
     {
@@ -69,7 +71,7 @@ class Relevance
     /**
      * La expresión de orden para el motor actual.
      *
-     * @param Builder<\Illuminate\Database\Eloquent\Model> $query
+     * @param Builder<Model> $query
      * @param array<int, int|string> $ids
      * @return array{0: string, 1: array<int, mixed>}
      */
@@ -78,7 +80,7 @@ class Relevance
         $wrapped = $query->getGrammar()->wrap($column);
         $placeholders = implode(', ', array_fill(0, count($ids), '?'));
 
-        return match ($query->getConnection()->getDriverName()) {
+        return match (Driver::of($query)) {
             'mysql', 'mariadb' => [
                 "FIELD({$wrapped}, {$placeholders})",
                 $ids,
@@ -89,19 +91,19 @@ class Relevance
             ],
             // CASE es más verboso pero funciona en cualquier motor.
             default => [
-                'CASE ' . $wrapped . ' '
-                    . implode(' ', array_map(
-                        static fn (int $position): string => 'WHEN ? THEN ' . $position,
+                'CASE '.$wrapped.' '
+                    .implode(' ', array_map(
+                        static fn (int $position): string => 'WHEN ? THEN '.$position,
                         array_keys($ids)
                     ))
-                    . ' ELSE ' . count($ids) . ' END',
+                    .' ELSE '.count($ids).' END',
                 $ids,
             ],
         };
     }
 
     /**
-     * @param Builder<\Illuminate\Database\Eloquent\Model> $query
+     * @param Builder<Model> $query
      */
     protected static function qualify(Builder $query, string $column): string
     {

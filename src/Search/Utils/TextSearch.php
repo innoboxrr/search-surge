@@ -3,7 +3,9 @@
 namespace Innoboxrr\SearchSurge\Search\Utils;
 
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Innoboxrr\SearchSurge\Search\Support\DataContainer;
+use Innoboxrr\SearchSurge\Search\Support\Driver;
 
 /**
  * Búsqueda de texto sobre una o varias columnas.
@@ -58,10 +60,10 @@ class TextSearch
     /**
      * LIKE 'termino%'. La única variante de LIKE que puede usar un índice.
      *
-     * @param Builder<\Illuminate\Database\Eloquent\Model> $query
+     * @param Builder<Model> $query
      * @param array<int, string> $columns
      * @param array<string, mixed> $options
-     * @return Builder<\Illuminate\Database\Eloquent\Model>
+     * @return Builder<Model>
      */
     public static function prefix(Builder $query, $data, string $key, array $columns, array $options = []): Builder
     {
@@ -71,10 +73,10 @@ class TextSearch
     /**
      * LIKE '%termino%'. Nunca usa un índice, en ningún motor.
      *
-     * @param Builder<\Illuminate\Database\Eloquent\Model> $query
+     * @param Builder<Model> $query
      * @param array<int, string> $columns
      * @param array<string, mixed> $options
-     * @return Builder<\Illuminate\Database\Eloquent\Model>
+     * @return Builder<Model>
      */
     public static function contains(Builder $query, $data, string $key, array $columns, array $options = []): Builder
     {
@@ -85,10 +87,10 @@ class TextSearch
      * LIKE '%termino'. Igual de cara que contains() y menos útil; está por
      * simetría, para búsquedas por sufijo (dominios, extensiones).
      *
-     * @param Builder<\Illuminate\Database\Eloquent\Model> $query
+     * @param Builder<Model> $query
      * @param array<int, string> $columns
      * @param array<string, mixed> $options
-     * @return Builder<\Illuminate\Database\Eloquent\Model>
+     * @return Builder<Model>
      */
     public static function suffix(Builder $query, $data, string $key, array $columns, array $options = []): Builder
     {
@@ -108,10 +110,10 @@ class TextSearch
      *   fallback -> qué hacer si el driver no lo soporta: 'contains' (por
      *               defecto), 'prefix' o 'throw'
      *
-     * @param Builder<\Illuminate\Database\Eloquent\Model> $query
+     * @param Builder<Model> $query
      * @param array<int, string> $columns
      * @param array<string, mixed> $options
-     * @return Builder<\Illuminate\Database\Eloquent\Model>
+     * @return Builder<Model>
      */
     public static function fullText(Builder $query, $data, string $key, array $columns, array $options = []): Builder
     {
@@ -125,8 +127,8 @@ class TextSearch
             return match ($options['fallback'] ?? 'contains') {
                 'prefix' => self::prefix($query, $data, $key, $columns, $options),
                 'throw' => throw new \RuntimeException(
-                    'SearchSurge: el driver [' . self::driver($query) . '] no soporta busqueda de texto completo. '
-                    . "Usa la opcion 'fallback' o cambia a prefix()/contains()."
+                    'SearchSurge: el driver ['.self::driver($query).'] no soporta busqueda de texto completo. '
+                    ."Usa la opcion 'fallback' o cambia a prefix()/contains()."
                 ),
                 default => self::contains($query, $data, $key, $columns, $options),
             };
@@ -152,10 +154,10 @@ class TextSearch
      * (modo 'all', por defecto), que es lo que espera quien escribe en una
      * caja de búsqueda. Con mode => 'any' basta con que aparezca una.
      *
-     * @param Builder<\Illuminate\Database\Eloquent\Model> $query
+     * @param Builder<Model> $query
      * @param array<int, string> $columns
      * @param array<string, mixed> $options
-     * @return Builder<\Illuminate\Database\Eloquent\Model>
+     * @return Builder<Model>
      */
     protected static function like(
         Builder $query,
@@ -188,8 +190,8 @@ class TextSearch
                         // ESCAPE explicito: sin el, SQLite no interpreta ningun
                         // caracter de escape y buscaria los comodines escapados
                         // de forma literal.
-                        $sql = $grammar->wrap($column) . ' ' . $operator
-                            . " ? escape '" . self::ESCAPE_CHAR . "'";
+                        $sql = $grammar->wrap($column).' '.$operator
+                            ." ? escape '".self::ESCAPE_CHAR."'";
 
                         $position === 0
                             ? $inner->whereRaw($sql, [$value])
@@ -262,10 +264,10 @@ class TextSearch
     {
         // El propio caracter de escape va primero; hacerlo despues duplicaria
         // los que introduce el escapado de los comodines.
-        $value = str_replace(self::ESCAPE_CHAR, self::ESCAPE_CHAR . self::ESCAPE_CHAR, $value);
+        $value = str_replace(self::ESCAPE_CHAR, self::ESCAPE_CHAR.self::ESCAPE_CHAR, $value);
 
         foreach (self::WILDCARDS as $wildcard) {
-            $value = str_replace($wildcard, self::ESCAPE_CHAR . $wildcard, $value);
+            $value = str_replace($wildcard, self::ESCAPE_CHAR.$wildcard, $value);
         }
 
         return $value;
@@ -278,7 +280,7 @@ class TextSearch
      * insensible. En PostgreSQL LIKE si distingue, asi que hace falta ILIKE
      * para que la busqueda se comporte igual en los dos motores.
      *
-     * @param Builder<\Illuminate\Database\Eloquent\Model> $query
+     * @param Builder<Model> $query
      * @param array<string, mixed> $options
      */
     protected static function operator(Builder $query, array $options): string
@@ -295,7 +297,7 @@ class TextSearch
      | ----------------------------------------------------------------- */
 
     /**
-     * @param Builder<\Illuminate\Database\Eloquent\Model> $query
+     * @param Builder<Model> $query
      * @param array<int, string> $columns
      * @return array<int, string>
      */
@@ -312,7 +314,7 @@ class TextSearch
     }
 
     /**
-     * @param Builder<\Illuminate\Database\Eloquent\Model> $query
+     * @param Builder<Model> $query
      */
     public static function supportsFullText(Builder $query): bool
     {
@@ -320,17 +322,17 @@ class TextSearch
     }
 
     /**
-     * @param Builder<\Illuminate\Database\Eloquent\Model> $query
+     * @param Builder<Model> $query
      */
     protected static function driver(Builder $query): string
     {
-        return (string) $query->getConnection()->getDriverName();
+        return Driver::of($query);
     }
 
     protected static function config(string $key, mixed $default): mixed
     {
         return function_exists('config')
-            ? config('search-surge.' . $key, $default)
+            ? config('search-surge.'.$key, $default)
             : $default;
     }
 }

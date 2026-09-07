@@ -3,6 +3,7 @@
 namespace Innoboxrr\SearchSurge\Search\Support;
 
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 
 /**
  * Analiza la consulta que produce una búsqueda y dice si va a escalar.
@@ -26,7 +27,7 @@ class QueryAnalyzer
     public const SEVERITY_INFO = 'info';
 
     /**
-     * @param Builder<\Illuminate\Database\Eloquent\Model> $query
+     * @param Builder<Model> $query
      * @return array<int, array{severity: string, code: string, message: string, hint: string}>
      */
     public function analyze(Builder $query): array
@@ -42,7 +43,7 @@ class QueryAnalyzer
      | ----------------------------------------------------------------- */
 
     /**
-     * @param Builder<\Illuminate\Database\Eloquent\Model> $query
+     * @param Builder<Model> $query
      * @return array<int, array<string, string>>
      */
     protected function analyzeSql(Builder $query): array
@@ -65,7 +66,7 @@ class QueryAnalyzer
                 'like.leading_wildcard',
                 "{$leading} condicion(es) LIKE empiezan por '%', que impide usar el indice.",
                 'Usa TextSearch::prefix() para autocompletados, fullText() para busqueda real, '
-                . 'o delega en un motor externo con EngineFilter.'
+                .'o delega en un motor externo con EngineFilter.'
             );
         }
 
@@ -77,7 +78,7 @@ class QueryAnalyzer
                 'like.or_across_columns',
                 'Hay un OR de LIKE sobre varias columnas.',
                 'El motor suele descartar los indices ante un OR entre columnas. '
-                . 'Una columna generada que concatene las buscadas, con un solo indice, rinde mejor.'
+                .'Una columna generada que concatene las buscadas, con un solo indice, rinde mejor.'
             );
         }
 
@@ -92,7 +93,7 @@ class QueryAnalyzer
                 'sql.function_on_column',
                 'Alguna condicion envuelve una columna en una funcion.',
                 'Eso impide usar su indice. Reescribelo como un rango sobre la columna desnuda, '
-                . 'que es lo que hace DateFilterQuery.'
+                .'que es lo que hace DateFilterQuery.'
             );
         }
 
@@ -102,7 +103,7 @@ class QueryAnalyzer
                 'order.missing',
                 'La consulta no tiene ORDER BY.',
                 'Sin un orden total, dos paginas consecutivas pueden repetir o saltarse filas. '
-                . 'Usa Order::fallback() en algun filtro.'
+                .'Usa Order::fallback() en algun filtro.'
             );
         }
 
@@ -114,7 +115,7 @@ class QueryAnalyzer
      | ----------------------------------------------------------------- */
 
     /**
-     * @param Builder<\Illuminate\Database\Eloquent\Model> $query
+     * @param Builder<Model> $query
      * @return array<int, array<string, string>>
      */
     protected function analyzePlan(Builder $query): array
@@ -135,12 +136,12 @@ class QueryAnalyzer
             return [$this->finding(
                 self::SEVERITY_INFO,
                 'plan.unavailable',
-                'No se pudo obtener el plan de ejecucion: ' . $e->getMessage(),
+                'No se pudo obtener el plan de ejecucion: '.$e->getMessage(),
                 'El analisis estatico del SQL sigue siendo valido.'
             )];
         }
 
-        return match ($query->getConnection()->getDriverName()) {
+        return match (Driver::of($query)) {
             'mysql', 'mariadb' => $this->analyzeMysqlPlan($rows),
             'pgsql' => $this->analyzePostgresPlan($rows),
             'sqlite' => $this->analyzeSqlitePlan($rows),
@@ -149,7 +150,7 @@ class QueryAnalyzer
     }
 
     /**
-     * @param Builder<\Illuminate\Database\Eloquent\Model> $query
+     * @param Builder<Model> $query
      * @return array<int, array<string, mixed>>
      */
     public function explain(Builder $query): array
@@ -158,7 +159,7 @@ class QueryAnalyzer
         $sql = $query->toSql();
         $bindings = $query->getBindings();
 
-        $statement = match ($connection->getDriverName()) {
+        $statement = match (Driver::ofConnection($connection)) {
             'sqlite' => 'EXPLAIN QUERY PLAN ',
             'pgsql' => 'EXPLAIN (FORMAT JSON) ',
             default => 'EXPLAIN ',
@@ -166,7 +167,7 @@ class QueryAnalyzer
 
         return array_map(
             static fn ($row): array => (array) $row,
-            $connection->select($statement . $sql, $bindings)
+            $connection->select($statement.$sql, $bindings)
         );
     }
 
@@ -189,14 +190,14 @@ class QueryAnalyzer
                 $findings[] = $this->finding(
                     self::SEVERITY_CRITICAL,
                     'plan.full_table_scan',
-                    "[{$table}] full table scan: examina ~" . number_format($examined) . ' filas.',
+                    "[{$table}] full table scan: examina ~".number_format($examined).' filas.',
                     'Falta un indice util para este WHERE, o la condicion no es sargable.'
                 );
             } elseif ($type === 'index') {
                 $findings[] = $this->finding(
                     self::SEVERITY_WARNING,
                     'plan.full_index_scan',
-                    "[{$table}] recorre el indice entero: ~" . number_format($examined) . ' filas.',
+                    "[{$table}] recorre el indice entero: ~".number_format($examined).' filas.',
                     'Mejor que un full scan, pero el coste sigue creciendo con la tabla.'
                 );
             }
@@ -272,7 +273,7 @@ class QueryAnalyzer
             $findings[] = $this->finding(
                 self::SEVERITY_WARNING,
                 'plan.high_cost',
-                'Coste estimado alto: ' . number_format((float) $cost, 2) . '.',
+                'Coste estimado alto: '.number_format((float) $cost, 2).'.',
                 'Revisa los indices de las columnas del WHERE y del ORDER BY.'
             );
         }
@@ -328,7 +329,7 @@ class QueryAnalyzer
     /**
      * El SQL con los bindings interpolados, solo para mostrarlo.
      *
-     * @param Builder<\Illuminate\Database\Eloquent\Model> $query
+     * @param Builder<Model> $query
      */
     public static function toRawSql(Builder $query): string
     {
@@ -339,8 +340,8 @@ class QueryAnalyzer
                 is_null($binding) => 'null',
                 is_bool($binding) => $binding ? '1' : '0',
                 is_numeric($binding) => (string) $binding,
-                $binding instanceof \DateTimeInterface => "'" . $binding->format('Y-m-d H:i:s') . "'",
-                default => "'" . str_replace("'", "''", (string) $binding) . "'",
+                $binding instanceof \DateTimeInterface => "'".$binding->format('Y-m-d H:i:s')."'",
+                default => "'".str_replace("'", "''", (string) $binding)."'",
             };
 
             $sql = preg_replace('/\?/', str_replace('$', '\\$', $value), $sql, 1) ?? $sql;
