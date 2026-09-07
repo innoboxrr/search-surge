@@ -1,0 +1,22 @@
+# Lo que no tiene que viajar dentro del vendor/ de quien instala el paquete.
+#
+# Antes de esto, los tests pesaban mas que el propio codigo (293 KB frente a
+# 272 KB) y acababan igualmente en produccion. Nada de lo de aqui hace falta
+# para usar el paquete: solo para desarrollarlo.
+/tests               export-ignore
+/.github             export-ignore
+/.gitattributes      export-ignore
+/.gitignore          export-ignore
+/phpunit.xml         export-ignore
+/phpstan.neon        export-ignore
+/pint.json           export-ignore
+/CHANGELOG.md        export-ignore
+
+# Normalizar los finales de linea en el repositorio, para que el paquete se vea
+# igual desde Windows y desde Linux.
+* text=auto eol=lf
+*.php    text eol=lf
+*.md     text eol=lf
+*.json   text eol=lf
+*.yml    text eol=lf
+*.neon   text eol=lf
