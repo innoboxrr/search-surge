@@ -99,20 +99,32 @@ jobs:
         needs: calidad
         name: ${{ matrix.driver }}
 
+        # Los datos de conexion van explicitos en la matriz y no en una
+        # expresion ternaria. En GitHub Actions, `cond && '' || otro` devuelve
+        # `otro` cuando cond es cierta, porque la cadena vacia es falsa: MySQL
+        # acababa recibiendo la contrasena de PostgreSQL.
         strategy:
             fail-fast: false
             matrix:
-                driver: [mysql, pgsql]
+                include:
+                    - driver: mysql
+                      port: 3306
+                      username: root
+                      password: secreto
+                    - driver: pgsql
+                      port: 5432
+                      username: postgres
+                      password: secreto
 
         services:
             mysql:
                 image: mysql:8.0
                 env:
-                    MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+                    MYSQL_ROOT_PASSWORD: secreto
                     MYSQL_DATABASE: surge_test
                 ports: ['3306:3306']
                 options: >-
-                    --health-cmd="mysqladmin ping"
+                    --health-cmd="mysqladmin ping -psecreto"
                     --health-interval=10s
                     --health-timeout=5s
                     --health-retries=5
@@ -145,7 +157,7 @@ jobs:
                   DB_CONNECTION: ${{ matrix.driver }}
                   DB_DATABASE: surge_test
                   DB_HOST: 127.0.0.1
-                  DB_PORT: ${{ matrix.driver == 'mysql' && '3306' || '5432' }}
-                  DB_USERNAME: ${{ matrix.driver == 'mysql' && 'root' || 'postgres' }}
-                  DB_PASSWORD: ${{ matrix.driver == 'mysql' && '' || 'secreto' }}
+                  DB_PORT: ${{ matrix.port }}
+                  DB_USERNAME: ${{ matrix.username }}
+                  DB_PASSWORD: ${{ matrix.password }}
               run: vendor/bin/phpunit --no-coverage
