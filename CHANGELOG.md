@@ -3,68 +3,21 @@
 Todas las modificaciones notables del proyecto se documentan aquí.
 Este proyecto sigue [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [3.1.0]
-
-Menos archivos por escribir, mas piezas listas y calidad verificada.
-
-### Added
-
-- **Filtros comunes** (`Filters\Common\{IdFilter,TimestampsFilter,SoftDeletesFilter}`).
-  Un modelo nuevo responde a `?id=`, `?ids=`, `?id_not=`, los rangos de fecha,
-  `?orderBy=` y `?trashed=` sin crear un solo archivo. Leen la configuracion del
-  propio modelo: la clave primaria real aunque sea un uuid, los nombres reales de
-  las columnas de timestamps, y si usa SoftDeletes.
-
-  No pisan a los tuyos: un comun se descarta si el modelo ya tiene algo
-  equivalente, por nombre corto de clase o por solape de claves declaradas. Sin
-  la segunda regla, un modelo con CreationFilter y UpdatedFilter propios
-  recibiria ademas el TimestampsFilter y las fechas se filtrarian dos veces.
-
-- **`Utils\NumericFilterQuery`**: rangos y operadores para columnas numericas,
-  con el mismo vocabulario que las fechas. Un valor no numerico se ignora en vez
-  de convertirse en 0, que es la diferencia entre "no filtres por precio" y
-  "dame los de precio 0".
-
-- **`Utils\SetFilterQuery`**: conjuntos con lista blanca. Si se pidio algo y nada
-  sobrevive al filtro, devuelve cero filas en vez de ignorar la condicion. El
-  literal `null` en la lista se traduce a IS NULL.
-
-- **`Utils\RelationFilterQuery`**: existencia, conteo y columnas del otro lado.
-  Usa whereHas y no intenta adivinar una estrategia, porque MySQL 8 unifica
-  whereHas, whereIn con subconsulta y JOIN en el mismo plan (112,6 / 74,2 /
-  90,1 ms sobre 1M de filas). Lo que si cambia las cosas, por 27x, es filtrar la
-  clave foranea directamente cuando esta en la propia tabla.
-
-- **`Support\Driver`**: centraliza saber que motor hay detras. `getConnection()`
-  devuelve `ConnectionInterface`, que no declara `getDriverName()`, asi que una
-  conexion personalizada haria fatal en las cuatro piezas que adaptan el SQL.
-
-- **PHPStan (larastan) y Pint** con configuracion propia, scripts de composer
-  (`composer check`) y un job de CI que corre las dos cosas antes que los tests.
-
-### Fixed
-
-- `array_filter(..., 'strlen')` en cuatro sitios: con un entero en la lista es
-  deprecacion en PHP 8.1 y TypeError en modo estricto.
-- Comparacion muerta en `DataContainer::date()`: `createFromFormat` de Illuminate
-  lanza en vez de devolver false, asi que el `=== false` nunca se cumplia.
-- Catch inalcanzable de `ReflectionException` en `ModelScanner`.
-
-### Changed
-
-- Una lista explicita en `$options['filters']` es **exhaustiva**: no recibe los
-  filtros comunes. Colar filtros que nadie pidio justo donde mas control se
-  espera seria una sorpresa desagradable. Lo declarado a nivel de modelo
-  (registro, manifiesto, convencion) si los recibe.
-
 ## [3.0.0]
 
-Compatibilidad con Laravel 13, descubrimiento dinámico de filtros y consultas
-sargables. La API de v2 sigue funcionando sin cambios.
+Compatibilidad con Laravel 13, descubrimiento dinámico de filtros, consultas
+sargables, búsqueda de texto y análisis de escalabilidad. La API de v2 sigue
+funcionando sin cambios.
+
+**Requiere Laravel 12 o 13 y PHP 8.2+.** Laravel 11 llegó al final de su soporte
+de seguridad en marzo de 2026 y arrastra siete avisos abiertos, asi que Composer
+se niega a instalarlo salvo que se desactive el bloqueo de avisos. Prometer un
+soporte que no se puede ni instalar ni verificar no seria soporte. Quien siga en
+Laravel 11 se queda en 2.0.6.
 
 ### Added
 
-- **Soporte para Laravel 11, 12 y 13** (PHP 8.2+; Laravel 13 requiere PHP 8.3).
+- **Soporte para Laravel 12 y 13** (PHP 8.2+; Laravel 13 requiere PHP 8.3).
   El `composer.json` declara por fin sus dependencias: antes no había ninguna
   restricción de `php` ni de `illuminate/*`.
 - **Descubrimiento por convención.** `App\Models\User` busca sus filtros en
@@ -164,6 +117,56 @@ sargables. La API de v2 sigue funcionando sin cambios.
   Incluye pruebas de inyección sobre todas las superficies de entrada, filtros
   que devuelven basura o lanzan, manifiestos corruptos, recorrido completo por
   HTTP y verificación de la paginación con empates.
+
+#### Menos archivos y mas piezas
+
+- **Filtros comunes** (`Filters\Common\{IdFilter,TimestampsFilter,SoftDeletesFilter}`).
+  Un modelo nuevo responde a `?id=`, `?ids=`, `?id_not=`, los rangos de fecha,
+  `?orderBy=` y `?trashed=` sin crear un solo archivo. Leen la configuracion del
+  propio modelo: la clave primaria real aunque sea un uuid, los nombres reales de
+  las columnas de timestamps, y si usa SoftDeletes.
+
+  No pisan a los tuyos: un comun se descarta si el modelo ya tiene algo
+  equivalente, por nombre corto de clase o por solape de claves declaradas. Sin
+  la segunda regla, un modelo con CreationFilter y UpdatedFilter propios
+  recibiria ademas el TimestampsFilter y las fechas se filtrarian dos veces.
+
+- **`Utils\NumericFilterQuery`**: rangos y operadores para columnas numericas,
+  con el mismo vocabulario que las fechas. Un valor no numerico se ignora en vez
+  de convertirse en 0, que es la diferencia entre "no filtres por precio" y
+  "dame los de precio 0".
+
+- **`Utils\SetFilterQuery`**: conjuntos con lista blanca. Si se pidio algo y nada
+  sobrevive al filtro, devuelve cero filas en vez de ignorar la condicion. El
+  literal `null` en la lista se traduce a IS NULL.
+
+- **`Utils\RelationFilterQuery`**: existencia, conteo y columnas del otro lado.
+  Usa whereHas y no intenta adivinar una estrategia, porque MySQL 8 unifica
+  whereHas, whereIn con subconsulta y JOIN en el mismo plan (112,6 / 74,2 /
+  90,1 ms sobre 1M de filas). Lo que si cambia las cosas, por 27x, es filtrar la
+  clave foranea directamente cuando esta en la propia tabla.
+
+- **`Support\Driver`**: centraliza saber que motor hay detras. `getConnection()`
+  devuelve `ConnectionInterface`, que no declara `getDriverName()`, asi que una
+  conexion personalizada haria fatal en las cuatro piezas que adaptan el SQL.
+
+- **PHPStan (larastan) y Pint** con configuracion propia, scripts de composer
+  (`composer check`) y un job de CI que corre las dos cosas antes que los tests.
+
+#### Corregido en la revision de calidad
+
+- `array_filter(..., 'strlen')` en cuatro sitios: con un entero en la lista es
+  deprecacion en PHP 8.1 y TypeError en modo estricto.
+- Comparacion muerta en `DataContainer::date()`: `createFromFormat` de Illuminate
+  lanza en vez de devolver false, asi que el `=== false` nunca se cumplia.
+- Catch inalcanzable de `ReflectionException` en `ModelScanner`.
+
+#### Matiz sobre los filtros comunes
+
+- Una lista explicita en `$options['filters']` es **exhaustiva**: no recibe los
+  filtros comunes. Colar filtros que nadie pidio justo donde mas control se
+  espera seria una sorpresa desagradable. Lo declarado a nivel de modelo
+  (registro, manifiesto, convencion) si los recibe.
 
 ### Fixed
 

@@ -6,7 +6,7 @@ Escribes filtros pequeños, uno por archivo. SearchSurge los encuentra, los
 ordena y los aplica. Funciona igual dentro de una app que dentro de un paquete,
 sin rutas a mano y sin configuración.
 
-**Laravel 11 · 12 · 13** — PHP 8.2+ · 381 tests · PHPStan sin errores
+**Laravel 12 · 13** — PHP 8.2+ · 381 tests · PHPStan sin errores
 
 ```bash
 composer require innoboxrr/search-surge
@@ -692,7 +692,10 @@ Lo que sí cambia de comportamiento:
    se evaluaba como `true` y se saltaba la comprobación de permisos.
 3. **Un `ManagedFilter` que lanza ya no se ignora.**
 4. **`paginate` se acota a `max_per_page`** (1000).
-5. **PHP 8.2+ y Laravel 11+.** Laravel 13 requiere PHP 8.3.
+5. **PHP 8.2+ y Laravel 12+.** Laravel 13 requiere PHP 8.3. Laravel 11 llegó al
+   final de su soporte de seguridad en marzo de 2026 y arrastra siete avisos
+   abiertos, así que Composer se niega a instalarlo: quien siga ahí se queda en
+   la 2.0.6.
 
 Opcional, cuando quieras aprovecharlo: quita los `filtersPath`, añade `$keys`,
 mete `search-surge:cache` en el deploy, pasa los exports a `lazy()` y pásale
@@ -707,7 +710,7 @@ composer install
 composer check     # estilo + analisis estatico + tests
 ```
 
-381 tests sobre Laravel 11, 12 y 13, PHPStan (con larastan) sin errores y Pint
+381 tests sobre Laravel 12 y 13, PHPStan (con larastan) sin errores y Pint
 sobre todo el codigo. CI corre las tres cosas. Incluyen inyección en todas las superficies
 de entrada, filtros que devuelven basura o lanzan, manifiestos corruptos,
 paginación con empates y un recorrido completo por HTTP.
