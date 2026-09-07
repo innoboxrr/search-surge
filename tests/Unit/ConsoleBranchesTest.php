@@ -2,7 +2,6 @@
 
 namespace Innoboxrr\SearchSurge\Tests\Unit;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\File;
 use Innoboxrr\SearchSurge\Search\Support\FilterRegistry;
 use Innoboxrr\SearchSurge\Search\Support\QueryAnalyzer;
@@ -162,16 +161,21 @@ class ConsoleBranchesTest extends TestCase
     }
 
     #[Test]
-    public function el_generador_falla_si_no_puede_deducir_donde_crear(): void
+    public function el_generador_falla_si_el_namespace_no_esta_en_el_autoloader(): void
     {
-        // Un modelo cuyo namespace no esta en el autoloader PSR-4.
-        $modelo = new class extends Model
-        {
-            protected $table = 'test_models';
-        };
+        // Una clase real, pero en un namespace que Composer no conoce: no hay
+        // forma de saber en que directorio deberia caer el filtro.
+        //
+        // Antes esta prueba usaba una clase anonima, y era una mala idea: su
+        // nombre lleva dentro la ruta del archivo, asi que en Windows contenia
+        // barras invertidas y en Linux no. La misma prueba comprobaba cosas
+        // distintas en cada sistema.
+        if (! class_exists('Vendor\\SinRegistrar\\Modelo')) {
+            eval('namespace Vendor\\SinRegistrar; class Modelo extends \\Illuminate\\Database\\Eloquent\\Model {}');
+        }
 
         $this->artisan('search-surge:filter', [
-            'model' => $modelo::class,
+            'model' => 'Vendor\\SinRegistrar\\Modelo',
             'name' => 'Algo',
         ])->assertFailed();
     }
