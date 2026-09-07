@@ -141,9 +141,30 @@ class EdgeCasesTest extends TestCase
 
         match (static::driver()) {
             'mysql', 'mariadb' => $this->assertStringContainsString('field(', $sql),
-            'pgsql' => $this->assertStringContainsString('array_position(', $sql),
+            // Los dos lados casteados: PostgreSQL deduce el tipo del ARRAY antes
+            // de conocer los parametros y asume text[].
+            'pgsql' => $this->assertStringContainsString('array_position(array[?, ?, ?]::text[]', $sql),
             default => $this->assertStringContainsString('case', $sql),
         };
+    }
+
+    #[Test]
+    public function la_relevancia_ordena_de_verdad_en_este_motor(): void
+    {
+        // No basta con mirar el SQL: en PostgreSQL la expresion se generaba bien
+        // y reventaba al ejecutarse por un desajuste de tipos.
+        TestModel::query()->insert([
+            ['id' => 1, 'name' => 'uno'],
+            ['id' => 2, 'name' => 'dos'],
+            ['id' => 3, 'name' => 'tres'],
+        ]);
+
+        $orden = [3, 1, 2];
+
+        $this->assertSame(
+            $orden,
+            Relevance::constrain(TestModel::query(), $orden)->pluck('id')->all()
+        );
     }
 
     /* -----------------------------------------------------------------

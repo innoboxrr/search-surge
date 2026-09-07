@@ -85,9 +85,17 @@ class Relevance
                 "FIELD({$wrapped}, {$placeholders})",
                 $ids,
             ],
+            // Los dos lados van casteados a texto a proposito. PostgreSQL
+            // deduce el tipo de ARRAY[...] al analizar la consulta, antes de
+            // saber que le van a llegar en los parametros, asi que con
+            // marcadores sin tipo asume text[]. Contra una clave bigint eso
+            // acaba en "function array_position(text[], bigint) does not
+            // exist". Comparar como texto es exacto aqui, porque lo unico que
+            // se busca es la posicion en la lista, y ademas funciona igual con
+            // claves enteras y con uuid.
             'pgsql' => [
-                "array_position(ARRAY[{$placeholders}], {$wrapped})",
-                $ids,
+                "array_position(ARRAY[{$placeholders}]::text[], {$wrapped}::text)",
+                array_map(strval(...), $ids),
             ],
             // CASE es más verboso pero funciona en cualquier motor.
             default => [
