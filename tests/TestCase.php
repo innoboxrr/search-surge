@@ -30,11 +30,44 @@ abstract class TestCase extends \Orchestra\Testbench\TestCase
         $this->app->make(FilterRegistry::class)->forget();
     }
 
+    protected function tearDown(): void
+    {
+        // Cada test levanta su propia aplicación, y con ella su conexión. Sobre
+        // SQLite en memoria eso da igual porque muere con el proceso, pero
+        // contra un servidor de verdad las conexiones se acumulan: PostgreSQL
+        // admite 100 por defecto y la suite tiene casi 500 pruebas, así que
+        // reventaba a media ejecución con "sorry, too many clients already".
+        if ($this->app !== null && ! $this->onSqlite()) {
+            $this->app->make('db')->disconnect('testing');
+        }
+
+        parent::tearDown();
+    }
+
+    /**
+     * Tablas que crea esta clase y que hay que dejar limpias en cada prueba.
+     */
+    protected const TABLAS = ['test_models', 'test_users', 'test_authors'];
+
+    /**
+     * Tablas que crean pruebas concretas. Se borran siempre, porque quien las
+     * crea usa Schema::create y fallaria si ya existieran.
+     */
+    protected const TABLAS_TEMPORALES = ['test_codigos', 'solo_fechas'];
+
     protected function createSchema(): void
     {
-        // SQLite en memoria nace vacio en cada test, pero MySQL y PostgreSQL
-        // conservan las tablas entre uno y otro.
-        foreach (['test_models', 'test_users', 'test_authors', 'test_codigos', 'solo_fechas'] as $table) {
+        foreach (static::TABLAS_TEMPORALES as $table) {
+            Schema::dropIfExists($table);
+        }
+
+        // Se rehace el esquema entero en cada prueba en vez de vaciar las
+        // tablas. Vaciarlas ahorraba unos 50 segundos de los seis minutos que
+        // tarda la suite contra MySQL, pero deja la estructura en pie: una
+        // prueba que anada un indice lo dejaria puesto, y la siguiente ejecucion
+        // fallaria con "Duplicate key name". Ese es un mal sitio para poner una
+        // trampa a quien escriba la proxima prueba que toque el esquema.
+        foreach (static::TABLAS as $table) {
             Schema::dropIfExists($table);
         }
 

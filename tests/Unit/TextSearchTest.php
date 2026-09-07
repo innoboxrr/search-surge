@@ -487,6 +487,7 @@ class TextSearchTest extends TestCase
 
         // MySQL exige un indice FULLTEXT para poder ejecutar MATCH AGAINST.
         if (in_array(static::driver(), ['mysql', 'mariadb'], true)) {
+
             DB::statement(
                 'ALTER TABLE test_models ADD FULLTEXT ft_name (name)'
             );
