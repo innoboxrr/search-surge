@@ -176,7 +176,7 @@ abstract class TestCase extends \Orchestra\Testbench\TestCase
         // que la consulta hace, pero basta para que la afirmacion falle solo en
         // ese motor. El cast de array_position se conserva porque ahi si
         // significa algo.
-        $sql = preg_replace('/::(text|date|bigint|integer)(?!\[)/', '', $sql) ?? $sql;
+        $sql = preg_replace('/::(text|date|bigint|integer)(?!\[)/', '', $sql) ?? $sql;
 
         return str_replace(['`', '"'], '', $sql);
     }
