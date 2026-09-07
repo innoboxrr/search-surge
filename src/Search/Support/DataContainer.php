@@ -23,7 +23,7 @@ use Traversable;
  * @implements ArrayAccess<string, mixed>
  * @implements IteratorAggregate<string, mixed>
  */
-class DataContainer implements ArrayAccess, Arrayable, Countable, IteratorAggregate, JsonSerializable
+class DataContainer implements Arrayable, ArrayAccess, Countable, IteratorAggregate, JsonSerializable
 {
     /** @var array<string, mixed> */
     private array $data;
@@ -166,7 +166,7 @@ class DataContainer implements ArrayAccess, Arrayable, Countable, IteratorAggreg
         }
 
         if (is_string($value) && str_contains($value, ',')) {
-            return array_values(array_filter(array_map('trim', explode(',', $value)), 'strlen'));
+            return array_values(array_filter(array_map('trim', explode(',', $value)), static fn ($v): bool => $v !== null && $v !== ''));
         }
 
         return [$value];
@@ -185,9 +185,9 @@ class DataContainer implements ArrayAccess, Arrayable, Countable, IteratorAggreg
 
         try {
             if ($format !== null) {
-                $date = Carbon::createFromFormat($format, (string) $value, $timezone);
-
-                return $date === false ? null : $date;
+                // createFromFormat de Illuminate lanza en vez de devolver false,
+                // asi que el catch de abajo es el que cubre el formato invalido.
+                return Carbon::createFromFormat($format, (string) $value, $timezone);
             }
 
             return Carbon::parse($value, $timezone);

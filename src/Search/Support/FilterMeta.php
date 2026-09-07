@@ -41,7 +41,7 @@ final class FilterMeta
             $value = self::staticProperty($filter, 'keys');
 
             if (is_array($value)) {
-                $keys = array_values(array_filter(array_map('strval', $value), 'strlen'));
+                $keys = array_values(array_filter(array_map('strval', $value), static fn ($v): bool => $v !== null && $v !== ''));
 
                 // Un $keys vacío declarado a propósito no debe apagar el filtro.
                 if ($keys === []) {

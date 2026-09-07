@@ -13,9 +13,7 @@ use Innoboxrr\SearchSurge\Search\Support\FilterRegistry;
  */
 class ModelScanner
 {
-    public function __construct(protected FilterRegistry $registry)
-    {
-    }
+    public function __construct(protected FilterRegistry $registry) {}
 
     /**
      * Todos los modelos candidatos, deduplicados.
@@ -84,8 +82,8 @@ class ModelScanner
         $classes = [];
 
         foreach (ComposerLocator::directoriesFor($namespace) as $directory) {
-            foreach (glob($directory . DIRECTORY_SEPARATOR . '*.php') ?: [] as $file) {
-                $classes[] = trim($namespace, '\\') . '\\' . basename($file, '.php');
+            foreach (glob($directory.DIRECTORY_SEPARATOR.'*.php') ?: [] as $file) {
+                $classes[] = trim($namespace, '\\').'\\'.basename($file, '.php');
             }
         }
 
@@ -98,11 +96,9 @@ class ModelScanner
             return false;
         }
 
-        try {
-            $reflection = new \ReflectionClass($class);
-        } catch (\ReflectionException) {
-            return false;
-        }
+        // Sin try/catch: class_exists() ya ha cargado la clase, asi que la
+        // reflexion sobre ella no puede fallar.
+        $reflection = new \ReflectionClass($class);
 
         return $reflection->isSubclassOf(Model::class)
             && ! $reflection->isAbstract();
