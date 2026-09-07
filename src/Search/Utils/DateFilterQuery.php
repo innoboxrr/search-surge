@@ -4,6 +4,8 @@ namespace Innoboxrr\SearchSurge\Search\Utils;
 
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
 use Innoboxrr\SearchSurge\Search\Support\DataContainer;
 
 /**
@@ -51,9 +53,9 @@ class DateFilterQuery
      *   {columna}_start_date     -> inicio de rango
      *   {columna}_end_date       -> fin de rango
      *
-     * @param Builder<\Illuminate\Database\Eloquent\Model> $query
+     * @param Builder<Model> $query
      * @param DataContainer $data
-     * @return Builder<\Illuminate\Database\Eloquent\Model>
+     * @return Builder<Model>
      */
     public static function apply(Builder $query, $data, string $column): Builder
     {
@@ -66,7 +68,7 @@ class DateFilterQuery
     }
 
     /**
-     * @param Builder<\Illuminate\Database\Eloquent\Model> $query
+     * @param Builder<Model> $query
      */
     protected static function applySingleDate(Builder $query, $data, string $column, string $qualified): void
     {
@@ -100,12 +102,12 @@ class DateFilterQuery
     }
 
     /**
-     * @param Builder<\Illuminate\Database\Eloquent\Model> $query
+     * @param Builder<Model> $query
      */
     protected static function applyRange(Builder $query, $data, string $column, string $qualified): void
     {
-        $start = self::parse($data, $column . '_start_date');
-        $end = self::parse($data, $column . '_end_date');
+        $start = self::parse($data, $column.'_start_date');
+        $end = self::parse($data, $column.'_end_date');
 
         if ($start === null && $end === null) {
             return;
@@ -142,7 +144,7 @@ class DateFilterQuery
      * Cualifica la columna con el nombre de la tabla para que no haya
      * ambigüedad si un filtro anterior añadió un join.
      *
-     * @param Builder<\Illuminate\Database\Eloquent\Model> $query
+     * @param Builder<Model> $query
      */
     protected static function qualify(Builder $query, string $column): string
     {
@@ -158,7 +160,7 @@ class DateFilterQuery
      */
     protected static function operator($data, string $column): ?string
     {
-        $raw = self::read($data, $column . '_operator') ?? self::read($data, 'operator');
+        $raw = self::read($data, $column.'_operator') ?? self::read($data, 'operator');
 
         // Sin operador no se aplica nada, igual que en v2. Es deliberado: hay
         // front-ends que mandan la fecha suelta y esperan que no filtre hasta
@@ -186,7 +188,7 @@ class DateFilterQuery
         }
 
         try {
-            return \Illuminate\Support\Carbon::parse($value);
+            return Carbon::parse($value);
         } catch (\Throwable) {
             return null;
         }

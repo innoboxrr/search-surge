@@ -39,21 +39,21 @@ class MakeFilterCommand extends Command
         $modelName = class_basename($model);
         $modelNamespace = substr($model, 0, (int) strrpos($model, '\\'));
         $suffix = (string) config('search-surge.filters.suffix', 'Filters');
-        $namespace = $modelNamespace . '\\' . $suffix . '\\' . $modelName;
+        $namespace = $modelNamespace.'\\'.$suffix.'\\'.$modelName;
 
         $directory = $this->directoryFor($namespace, $modelNamespace, $suffix, $modelName);
 
         if ($directory === null) {
             $this->components->error(
                 "No se pudo deducir donde vive [{$namespace}]. "
-                . 'Comprueba que el namespace del modelo esta en el autoloader PSR-4.'
+                .'Comprueba que el namespace del modelo esta en el autoloader PSR-4.'
             );
 
             return self::FAILURE;
         }
 
         $class = $this->className((string) $this->argument('name'));
-        $path = $directory . DIRECTORY_SEPARATOR . $class . '.php';
+        $path = $directory.DIRECTORY_SEPARATOR.$class.'.php';
 
         if ($files->exists($path) && ! $this->option('force')) {
             $this->components->error("Ya existe: {$path}");
@@ -98,7 +98,7 @@ class MakeFilterCommand extends Command
             return null;
         }
 
-        return $modelDirectory . DIRECTORY_SEPARATOR . $suffix . DIRECTORY_SEPARATOR . $modelName;
+        return $modelDirectory.DIRECTORY_SEPARATOR.$suffix.DIRECTORY_SEPARATOR.$modelName;
     }
 
     protected function className(string $name): string
@@ -106,7 +106,7 @@ class MakeFilterCommand extends Command
         $name = str_replace(['/', '\\'], '', trim($name));
         $name = preg_replace('/Filter$/i', '', $name) ?? $name;
 
-        return ucfirst($name) . 'Filter';
+        return ucfirst($name).'Filter';
     }
 
     protected function render(string $namespace, string $class): string

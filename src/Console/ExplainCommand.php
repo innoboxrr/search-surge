@@ -3,6 +3,7 @@
 namespace Innoboxrr\SearchSurge\Console;
 
 use Illuminate\Console\Command;
+use Illuminate\Database\Eloquent\Model;
 use Innoboxrr\SearchSurge\Search\Builder;
 use Innoboxrr\SearchSurge\Search\Support\FilterMeta;
 use Innoboxrr\SearchSurge\Search\Support\FilterRegistry;
@@ -87,24 +88,24 @@ class ExplainCommand extends Command
             $applied = $keys === null || array_intersect($keys, array_keys($data)) !== [];
 
             $this->components->twoColumnDetail(
-                '  ' . class_basename($filter),
+                '  '.class_basename($filter),
                 $applied ? '<fg=green>aplicado</>' : '<fg=gray>omitido (no vienen sus claves)</>'
             );
         }
     }
 
     /**
-     * @param \Illuminate\Database\Eloquent\Builder<\Illuminate\Database\Eloquent\Model> $query
+     * @param \Illuminate\Database\Eloquent\Builder<Model> $query
      */
     protected function renderSql($query): void
     {
         $this->newLine();
         $this->line('<fg=cyan;options=bold>  SQL</>');
-        $this->line('  ' . QueryAnalyzer::toRawSql($query));
+        $this->line('  '.QueryAnalyzer::toRawSql($query));
     }
 
     /**
-     * @param \Illuminate\Database\Eloquent\Builder<\Illuminate\Database\Eloquent\Model> $query
+     * @param \Illuminate\Database\Eloquent\Builder<Model> $query
      */
     protected function renderPlan(QueryAnalyzer $analyzer, $query): void
     {
@@ -114,7 +115,7 @@ class ExplainCommand extends Command
         try {
             $rows = $analyzer->explain($query);
         } catch (\Throwable $e) {
-            $this->line('  <fg=gray>no disponible: ' . $e->getMessage() . '</>');
+            $this->line('  <fg=gray>no disponible: '.$e->getMessage().'</>');
 
             return;
         }
@@ -140,7 +141,7 @@ class ExplainCommand extends Command
     }
 
     /**
-     * @param \Illuminate\Database\Eloquent\Builder<\Illuminate\Database\Eloquent\Model> $query
+     * @param \Illuminate\Database\Eloquent\Builder<Model> $query
      */
     protected function renderTiming($query): void
     {
@@ -168,7 +169,7 @@ class ExplainCommand extends Command
     }
 
     /**
-     * @param \Illuminate\Database\Eloquent\Builder<\Illuminate\Database\Eloquent\Model> $query
+     * @param \Illuminate\Database\Eloquent\Builder<Model> $query
      * @return array<int, array<string, string>>
      */
     protected function analyzeCount(QueryAnalyzer $analyzer, $query): array
@@ -177,7 +178,7 @@ class ExplainCommand extends Command
 
         $this->newLine();
         $this->line('<fg=cyan;options=bold>  COUNT(*) del paginador</>');
-        $this->line('  ' . $countQuery->toSql());
+        $this->line('  '.$countQuery->toSql());
 
         return [];
     }
@@ -247,7 +248,7 @@ class ExplainCommand extends Command
         $decoded = json_decode((string) $raw, true);
 
         if (! is_array($decoded)) {
-            $this->components->error('--data debe ser un objeto JSON valido. ' . json_last_error_msg());
+            $this->components->error('--data debe ser un objeto JSON valido. '.json_last_error_msg());
 
             return null;
         }

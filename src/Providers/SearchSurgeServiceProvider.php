@@ -16,7 +16,7 @@ class SearchSurgeServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->mergeConfigFrom(
-            __DIR__ . '/../../config/search-surge.php',
+            __DIR__.'/../../config/search-surge.php',
             'search-surge'
         );
 
@@ -46,7 +46,7 @@ class SearchSurgeServiceProvider extends ServiceProvider
         }
 
         $this->publishes([
-            __DIR__ . '/../../config/search-surge.php' => $this->app->configPath('search-surge.php'),
+            __DIR__.'/../../config/search-surge.php' => $this->app->configPath('search-surge.php'),
         ], ['search-surge', 'search-surge-config']);
 
         $this->commands([

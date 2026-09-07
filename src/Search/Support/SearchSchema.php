@@ -29,9 +29,7 @@ class SearchSchema
         'orderMode' => 'asc | desc.',
     ];
 
-    public function __construct(protected FilterRegistry $registry)
-    {
-    }
+    public function __construct(protected FilterRegistry $registry) {}
 
     /**
      * El esquema completo de un modelo.

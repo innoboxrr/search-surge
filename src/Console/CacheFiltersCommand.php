@@ -46,7 +46,7 @@ class CacheFiltersCommand extends Command
 
         if ($manifest === []) {
             $this->components->warn(
-                'Se encontraron ' . count($models) . ' modelos, pero ninguno tiene filtros. Nada que cachear.'
+                'Se encontraron '.count($models).' modelos, pero ninguno tiene filtros. Nada que cachear.'
             );
 
             return self::SUCCESS;
@@ -58,7 +58,7 @@ class CacheFiltersCommand extends Command
         $filters = array_sum(array_map('count', $manifest));
 
         $this->components->info(
-            "Manifiesto escrito: {$filters} filtros de " . count($manifest) . ' modelos.'
+            "Manifiesto escrito: {$filters} filtros de ".count($manifest).' modelos.'
         );
 
         if ($this->option('show')) {
@@ -95,10 +95,10 @@ class CacheFiltersCommand extends Command
         ];
 
         foreach ($manifest as $model => $filters) {
-            $lines[] = '    ' . var_export($model, true) . ' => [';
+            $lines[] = '    '.var_export($model, true).' => [';
 
             foreach ($filters as $filter) {
-                $lines[] = '        ' . var_export($filter, true) . ',';
+                $lines[] = '        '.var_export($filter, true).',';
             }
 
             $lines[] = '    ],';

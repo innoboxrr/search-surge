@@ -2,6 +2,7 @@
 
 namespace Innoboxrr\SearchSurge\Exceptions;
 
+use Illuminate\Http\JsonResponse;
 use RuntimeException;
 
 /**
@@ -23,7 +24,7 @@ class PageLimitExceededException extends RuntimeException
     ) {
         parent::__construct(
             "SearchSurge: se pidió la página {$page}, por encima del máximo de {$maxPage}. "
-            . 'Afina los filtros o usa paginación por cursor.'
+            .'Afina los filtros o usa paginación por cursor.'
         );
     }
 
@@ -35,7 +36,7 @@ class PageLimitExceededException extends RuntimeException
         return 400;
     }
 
-    public function render(): \Illuminate\Http\JsonResponse
+    public function render(): JsonResponse
     {
         return response()->json([
             'message' => $this->getMessage(),

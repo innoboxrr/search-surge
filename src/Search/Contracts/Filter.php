@@ -3,6 +3,7 @@
 namespace Innoboxrr\SearchSurge\Search\Contracts;
 
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Innoboxrr\SearchSurge\Search\Support\DataContainer;
 
 /**
@@ -32,8 +33,8 @@ interface Filter
      * Devolver el builder es lo recomendado, pero SearchSurge también acepta
      * que lo mutes sin devolverlo.
      *
-     * @param Builder<\Illuminate\Database\Eloquent\Model> $query
-     * @return Builder<\Illuminate\Database\Eloquent\Model>|void
+     * @param Builder<Model> $query
+     * @return Builder<Model>|void
      */
     public static function apply(Builder $query, DataContainer $data);
 }

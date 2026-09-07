@@ -2,7 +2,11 @@
 
 namespace Innoboxrr\SearchSurge\Search\Concerns;
 
+use Illuminate\Contracts\Pagination\CursorPaginator;
+use Illuminate\Contracts\Pagination\Paginator;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\LazyCollection;
 use Innoboxrr\SearchSurge\Search\Builder;
 
 /**
@@ -77,7 +81,7 @@ trait HasSearchSurge
      *
      * @param array<string, mixed> $data
      * @param array<string, mixed> $options
-     * @return \Illuminate\Contracts\Pagination\Paginator|\Illuminate\Contracts\Pagination\CursorPaginator|\Illuminate\Database\Eloquent\Collection
+     * @return Paginator|CursorPaginator|Collection
      */
     public static function surgeSearch(array $data = [], array $options = [])
     {
@@ -90,7 +94,7 @@ trait HasSearchSurge
      *
      * @param array<string, mixed> $data
      * @param array<string, mixed> $options
-     * @return \Illuminate\Support\LazyCollection<int, static>
+     * @return LazyCollection<int, static>
      */
     public static function surgeLazy(array $data = [], array $options = [], int $chunkSize = 1000)
     {

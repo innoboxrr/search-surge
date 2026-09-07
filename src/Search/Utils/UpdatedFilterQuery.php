@@ -3,6 +3,7 @@
 namespace Innoboxrr\SearchSurge\Search\Utils;
 
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 
 /**
  * Filtro por updated_at.
@@ -25,8 +26,8 @@ class UpdatedFilterQuery
     ];
 
     /**
-     * @param Builder<\Illuminate\Database\Eloquent\Model> $query
-     * @return Builder<\Illuminate\Database\Eloquent\Model>
+     * @param Builder<Model> $query
+     * @return Builder<Model>
      */
     public static function sort(Builder $query, $data): Builder
     {

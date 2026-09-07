@@ -3,6 +3,7 @@
 namespace Innoboxrr\SearchSurge\Search\Utils;
 
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Innoboxrr\SearchSurge\Search\Support\DataContainer;
 
 /**
@@ -42,8 +43,8 @@ class Managed
      * heredan o sobrescriben este método, y añadirlo aquí haría fatal cualquier
      * override que no lo repitiera.
      *
-     * @param Builder<\Illuminate\Database\Eloquent\Model> $query
-     * @return Builder<\Illuminate\Database\Eloquent\Model>
+     * @param Builder<Model> $query
+     * @return Builder<Model>
      */
     public static function apply(Builder $query, $data)
     {
@@ -71,8 +72,8 @@ class Managed
     }
 
     /**
-     * @param Builder<\Illuminate\Database\Eloquent\Model> $query
-     * @return Builder<\Illuminate\Database\Eloquent\Model>
+     * @param Builder<Model> $query
+     * @return Builder<Model>
      */
     public static function canViewConstraint($query, $user, $data)
     {

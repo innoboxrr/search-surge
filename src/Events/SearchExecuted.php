@@ -25,8 +25,7 @@ class SearchExecuted
         public readonly array $bindings,
         public readonly float $milliseconds,
         public readonly ?int $results = null,
-    ) {
-    }
+    ) {}
 
     /**
      * ¿Ha tardado más de lo aceptable?

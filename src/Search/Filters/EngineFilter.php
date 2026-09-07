@@ -3,6 +3,7 @@
 namespace Innoboxrr\SearchSurge\Search\Filters;
 
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Innoboxrr\SearchSurge\Search\Support\DataContainer;
 use Innoboxrr\SearchSurge\Search\Utils\Relevance;
 
@@ -66,8 +67,8 @@ abstract class EngineFilter
     public static bool $critical = true;
 
     /**
-     * @param Builder<\Illuminate\Database\Eloquent\Model> $query
-     * @return Builder<\Illuminate\Database\Eloquent\Model>
+     * @param Builder<Model> $query
+     * @return Builder<Model>
      */
     public static function apply(Builder $query, DataContainer $data): Builder
     {
@@ -101,7 +102,7 @@ abstract class EngineFilter
      * `Searchable`. Scout es una dependencia opcional: el paquete no la
      * requiere, solo la usa si está.
      *
-     * @param Builder<\Illuminate\Database\Eloquent\Model> $query
+     * @param Builder<Model> $query
      * @return array<int, int|string>
      */
     protected static function ids(Builder $query, DataContainer $data, string $term): array
@@ -110,8 +111,8 @@ abstract class EngineFilter
 
         if (! method_exists($model, 'search')) {
             throw new \RuntimeException(
-                'SearchSurge: ' . $model::class . ' no es buscable. Instala laravel/scout y anade el '
-                . 'trait Searchable al modelo, o sobrescribe ids() en ' . static::class . '.'
+                'SearchSurge: '.$model::class.' no es buscable. Instala laravel/scout y anade el '
+                .'trait Searchable al modelo, o sobrescribe ids() en '.static::class.'.'
             );
         }
 

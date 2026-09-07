@@ -63,14 +63,14 @@ class ListFiltersCommand extends Command
 
             $this->components->twoColumnDetail(
                 "<fg=cyan>{$candidate}</>",
-                count($filters) . ' filtros'
+                count($filters).' filtros'
             );
 
             foreach ($filters as $filter) {
                 $keys = FilterMeta::keys($filter);
 
                 $this->components->twoColumnDetail(
-                    '  ' . class_basename($filter),
+                    '  '.class_basename($filter),
                     $this->describe($filter, $keys)
                 );
             }
@@ -120,7 +120,7 @@ class ListFiltersCommand extends Command
      */
     protected function describe(string $filter, ?array $keys): string
     {
-        $parts = ['prioridad ' . FilterMeta::priority($filter)];
+        $parts = ['prioridad '.FilterMeta::priority($filter)];
 
         if (FilterMeta::isCritical($filter)) {
             $parts[] = '<fg=yellow>autorización</>';
@@ -128,7 +128,7 @@ class ListFiltersCommand extends Command
 
         $parts[] = $keys === null
             ? '<fg=gray>siempre</>'
-            : 'si viene: ' . implode(', ', $keys);
+            : 'si viene: '.implode(', ', $keys);
 
         return implode(' · ', $parts);
     }

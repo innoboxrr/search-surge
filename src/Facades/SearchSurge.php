@@ -3,6 +3,9 @@
 namespace Innoboxrr\SearchSurge\Facades;
 
 use Illuminate\Support\Facades\Facade;
+use Innoboxrr\SearchSurge\Search\Builder;
+use Innoboxrr\SearchSurge\Search\Support\FilterRegistry;
+use Innoboxrr\SearchSurge\Search\Support\SearchSchema;
 
 /**
  * @method static \Illuminate\Database\Eloquent\Builder query(string $model, array $data = [], array $options = [])
@@ -16,7 +19,7 @@ use Illuminate\Support\Facades\Facade;
  * @method static \Innoboxrr\SearchSurge\Search\Builder setOptions(array $options = [])
  * @method static \Innoboxrr\SearchSurge\Search\Builder setBasePath(string $basePath)
  *
- * @see \Innoboxrr\SearchSurge\Search\Builder
+ * @see Builder
  */
 class SearchSurge extends Facade
 {
@@ -115,17 +118,17 @@ class SearchSurge extends Facade
         return static::schemaBuilder()->unknown($model, $data, $options);
     }
 
-    public static function schemaBuilder(): \Innoboxrr\SearchSurge\Search\Support\SearchSchema
+    public static function schemaBuilder(): SearchSchema
     {
         return static::getFacadeApplication()->make(
-            \Innoboxrr\SearchSurge\Search\Support\SearchSchema::class
+            SearchSchema::class
         );
     }
 
-    public static function registry(): \Innoboxrr\SearchSurge\Search\Support\FilterRegistry
+    public static function registry(): FilterRegistry
     {
         return static::getFacadeApplication()->make(
-            \Innoboxrr\SearchSurge\Search\Support\FilterRegistry::class
+            FilterRegistry::class
         );
     }
 }

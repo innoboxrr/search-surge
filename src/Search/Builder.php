@@ -4,11 +4,14 @@ namespace Innoboxrr\SearchSurge\Search;
 
 use Illuminate\Contracts\Config\Repository as ConfigRepository;
 use Illuminate\Contracts\Container\Container;
+use Illuminate\Contracts\Pagination\CursorPaginator;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\LazyCollection;
 use Innoboxrr\SearchSurge\Events\SearchExecuted;
 use Innoboxrr\SearchSurge\Exceptions\PageLimitExceededException;
 use Innoboxrr\SearchSurge\Search\Support\DataContainer;
@@ -74,7 +77,7 @@ class Builder
 
     protected ?DataContainer $data = null;
 
-    protected const DEFAULT_FILTERS_PATH = 'app' . DIRECTORY_SEPARATOR . 'Models' . DIRECTORY_SEPARATOR . 'Filters';
+    protected const DEFAULT_FILTERS_PATH = 'app'.DIRECTORY_SEPARATOR.'Models'.DIRECTORY_SEPARATOR.'Filters';
 
     /** Legado: se sigue exponiendo dentro de $data. */
     protected string $filtersPath = self::DEFAULT_FILTERS_PATH;
@@ -121,7 +124,7 @@ class Builder
      * @param class-string<Model> $model
      * @param array<string, mixed> $data
      * @param array<string, mixed> $options
-     * @return \Illuminate\Contracts\Pagination\Paginator|\Illuminate\Contracts\Pagination\CursorPaginator|\Illuminate\Database\Eloquent\Collection
+     * @return \Illuminate\Contracts\Pagination\Paginator|CursorPaginator|Collection
      */
     public function get(string $model, array $data = [], array $options = [])
     {
@@ -181,7 +184,7 @@ class Builder
      * @param class-string<Model> $model
      * @param array<string, mixed> $data
      * @param array<string, mixed> $options
-     * @return \Illuminate\Support\LazyCollection<int, Model>
+     * @return LazyCollection<int, Model>
      */
     public function lazy(string $model, array $data = [], array $options = [], int $chunkSize = 1000)
     {
@@ -196,7 +199,7 @@ class Builder
      * @param class-string<Model> $model
      * @param array<string, mixed> $data
      * @param array<string, mixed> $options
-     * @return \Illuminate\Support\LazyCollection<int, Model>
+     * @return LazyCollection<int, Model>
      */
     public function lazyById(string $model, array $data = [], array $options = [], int $chunkSize = 1000)
     {
@@ -210,7 +213,7 @@ class Builder
      * @param class-string<Model> $model
      * @param array<string, mixed> $data
      * @param array<string, mixed> $options
-     * @return \Illuminate\Support\LazyCollection<int, Model>
+     * @return LazyCollection<int, Model>
      */
     public function cursor(string $model, array $data = [], array $options = [])
     {
@@ -409,9 +412,9 @@ class Builder
         }
 
         // Sin filtros resueltos, reconstruimos la ruta legada por si acaso.
-        $base = $this->basePath ?? (function_exists('base_path') ? base_path() . DIRECTORY_SEPARATOR : '');
+        $base = $this->basePath ?? (function_exists('base_path') ? base_path().DIRECTORY_SEPARATOR : '');
 
-        $this->filtersRealPath = $base . $this->filtersPath . DIRECTORY_SEPARATOR . $this->modelName;
+        $this->filtersRealPath = $base.$this->filtersPath.DIRECTORY_SEPARATOR.$this->modelName;
 
         return $this;
     }
@@ -445,7 +448,7 @@ class Builder
             }
         }
 
-        return $this->filtersNamespace . '\\' . $this->modelName . '\\ManagedFilter';
+        return $this->filtersNamespace.'\\'.$this->modelName.'\\ManagedFilter';
     }
 
     /* -----------------------------------------------------------------
@@ -579,7 +582,7 @@ class Builder
      | ----------------------------------------------------------------- */
 
     /**
-     * @return \Illuminate\Contracts\Pagination\Paginator|\Illuminate\Contracts\Pagination\CursorPaginator|\Illuminate\Database\Eloquent\Collection
+     * @return \Illuminate\Contracts\Pagination\Paginator|CursorPaginator|Collection
      */
     protected function executeSearch()
     {
@@ -610,7 +613,7 @@ class Builder
      * ligeramente desfasado; el número de páginas de un listado admite eso
      * mucho mejor que un COUNT(*) de 10M filas por pulsación.
      *
-     * @return \Illuminate\Pagination\LengthAwarePaginator
+     * @return LengthAwarePaginator
      */
     protected function lengthAwarePaginate(int $perPage, string $pageName)
     {
@@ -647,7 +650,7 @@ class Builder
         $base = $this->modelQuery->toBase();
 
         $key = $this->config->get('search-surge.cache.prefix', 'search-surge:filters:')
-            . 'count:' . sha1($base->toSql() . '|' . serialize($base->getBindings()));
+            .'count:'.sha1($base->toSql().'|'.serialize($base->getBindings()));
 
         $store = $this->container->make('cache')->store(
             $this->config->get('search-surge.cache.store')

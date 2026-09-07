@@ -49,19 +49,19 @@ final class ComposerLocator
         $directories = [];
 
         foreach (self::prefixes() as [$prefix, $paths]) {
-            if (! str_starts_with($namespace . '\\', $prefix)) {
+            if (! str_starts_with($namespace.'\\', $prefix)) {
                 continue;
             }
 
             // Lo que sobra del namespace después del prefijo se vuelve subruta.
-            $relative = substr($namespace . '\\', strlen($prefix));
+            $relative = substr($namespace.'\\', strlen($prefix));
             $relative = str_replace('\\', DIRECTORY_SEPARATOR, rtrim($relative, '\\'));
 
             foreach ($paths as $path) {
                 $directory = rtrim($path, DIRECTORY_SEPARATOR);
 
                 if ($relative !== '') {
-                    $directory .= DIRECTORY_SEPARATOR . $relative;
+                    $directory .= DIRECTORY_SEPARATOR.$relative;
                 }
 
                 if (is_dir($directory)) {
@@ -125,7 +125,7 @@ final class ComposerLocator
                 continue;
             }
 
-            $candidate = $root . '\\' . $segment;
+            $candidate = $root.'\\'.$segment;
 
             if (self::directoriesFor($candidate) !== []) {
                 $found[] = $candidate;

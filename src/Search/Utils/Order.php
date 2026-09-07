@@ -3,6 +3,7 @@
 namespace Innoboxrr\SearchSurge\Search\Utils;
 
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Innoboxrr\SearchSurge\Search\Support\DataContainer;
 
 /**
@@ -34,8 +35,8 @@ class Order
     /**
      * Ordena por $column si la petición pidió justamente esa columna.
      *
-     * @param Builder<\Illuminate\Database\Eloquent\Model> $query
-     * @return Builder<\Illuminate\Database\Eloquent\Model>
+     * @param Builder<Model> $query
+     * @return Builder<Model>
      */
     public static function orderBy(Builder $query, $data, string $column): Builder
     {
@@ -52,9 +53,9 @@ class Order
      *
      * El prefijo '-' invierte el sentido de esa columna.
      *
-     * @param Builder<\Illuminate\Database\Eloquent\Model> $query
+     * @param Builder<Model> $query
      * @param array<int, string> $allowed
-     * @return Builder<\Illuminate\Database\Eloquent\Model>
+     * @return Builder<Model>
      */
     public static function orderByAny(Builder $query, $data, array $allowed): Builder
     {
@@ -98,8 +99,8 @@ class Order
      * Un ORDER BY estable importa más de lo que parece: sin él, la paginación
      * puede repetir o saltarse filas entre páginas.
      *
-     * @param Builder<\Illuminate\Database\Eloquent\Model> $query
-     * @return Builder<\Illuminate\Database\Eloquent\Model>
+     * @param Builder<Model> $query
+     * @return Builder<Model>
      */
     public static function fallback(Builder $query, $data, string $column, string $direction = 'desc'): Builder
     {
