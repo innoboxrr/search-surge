@@ -35,7 +35,7 @@ class TextSearchTest extends TestCase
         $query = TextSearch::prefix($this->newQuery(), new DataContainer(['q' => 'zapato']), 'q', ['name']);
 
         $this->assertSame(['zapato%'], $query->getBindings());
-        $this->assertSqlHas('test_models.name like ?', $query->toSql());
+        $this->assertSqlHas('test_models.name '.$this->likeOp().' ?', $query->toSql());
     }
 
     #[Test]
@@ -66,8 +66,8 @@ class TextSearchTest extends TestCase
 
         $sql = $query->toSql();
 
-        $this->assertSqlHas('test_models.name like ?', $sql);
-        $this->assertSqlHas('or test_models.owner_id like ?', $sql);
+        $this->assertSqlHas('test_models.name '.$this->likeOp().' ?', $sql);
+        $this->assertSqlHas('or test_models.owner_id '.$this->likeOp().' ?', $sql);
         $this->assertSame(['ana%', 'ana%'], $query->getBindings());
     }
 
@@ -519,7 +519,7 @@ class TextSearchTest extends TestCase
     }
 
     #[Test]
-    public function usa_ilike_solo_en_postgresql(): void
+    public function el_operador_textual_se_adapta_al_motor(): void
     {
         $sql = strtolower($this->sqlOf(TextSearch::contains(
             $this->newQuery(),

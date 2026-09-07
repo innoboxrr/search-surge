@@ -262,7 +262,7 @@ class BuilderTest extends TestCase
         // Sin 'filters' en la segunda llamada, debe volver a la convencion.
         $query = $builder->query(TestModel::class, ['paginate' => 0]);
 
-        $this->assertSqlMissing('name like ?', $query->toSql());
+        $this->assertSqlMissing('name '.$this->likeOp().' ?', $query->toSql());
     }
 
     #[Test]

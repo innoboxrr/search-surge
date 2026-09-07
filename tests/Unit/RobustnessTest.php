@@ -105,7 +105,7 @@ class RobustnessTest extends TestCase
             'filters' => [BrokenFilter::class, KeyedNameFilter::class],
         ])->toSql();
 
-        $this->assertSqlHas('name like ?', $sql);
+        $this->assertSqlHas('name '.$this->likeOp().' ?', $sql);
     }
 
     #[Test]
@@ -366,7 +366,7 @@ class RobustnessTest extends TestCase
         $inner->query(TestModel::class, ['id' => 5]);
 
         // La consulta externa no debe haberse alterado por la interna.
-        $this->assertSqlHas('name like ?', $outerQuery->toSql());
+        $this->assertSqlHas('name '.$this->likeOp().' ?', $outerQuery->toSql());
         $this->assertSqlMissing('id = ?', $outerQuery->toSql());
     }
 

@@ -90,7 +90,13 @@ class QueryAnalyzer
         // cualificada: SQLite genera strftime('%Y-%m-%d', "col") y MySQL
         // date("tabla"."col"). CAST queda fuera a proposito: Laravel lo aplica
         // del lado del valor, no de la columna.
-        if (preg_match('/\b(date|strftime|lower|upper|coalesce|concat)\s*\([^)]*[`"][a-z_]+[`"](\.[`"][a-z_]+[`"])?\s*[,)]/i', $sql)) {
+        // PostgreSQL no envuelve la columna en una función, la castea:
+        // "created_at"::date = ?. El efecto sobre el índice es el mismo, así
+        // que las dos formas cuentan.
+        $envuelta = preg_match('/\b(date|strftime|lower|upper|coalesce|concat)\s*\([^)]*[`"][a-z_]+[`"](\.[`"][a-z_]+[`"])?\s*[,)]/i', $sql) === 1
+            || preg_match('/[`"][a-z_]+[`"]::(date|time|timestamp)\b/i', $sql) === 1;
+
+        if ($envuelta) {
             $findings[] = $this->finding(
                 self::SEVERITY_WARNING,
                 'sql.function_on_column',

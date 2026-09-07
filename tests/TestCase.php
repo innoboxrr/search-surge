@@ -171,7 +171,25 @@ abstract class TestCase extends \Orchestra\Testbench\TestCase
     {
         $sql = $query instanceof Builder ? $query->toSql() : $query;
 
+        // PostgreSQL castea la columna en algunas condiciones ("name"::text
+        // like ?). Es ruido del mismo tipo que el entrecomillado: no cambia lo
+        // que la consulta hace, pero basta para que la afirmacion falle solo en
+        // ese motor. El cast de array_position se conserva porque ahi si
+        // significa algo.
+        $sql = preg_replace('/::(text|date|bigint|integer)(?!\[)/', '', $sql) ?? $sql;
+
         return str_replace(['`', '"'], '', $sql);
+    }
+
+    /**
+     * El operador de comparacion textual del motor actual.
+     *
+     * PostgreSQL distingue mayusculas con LIKE, asi que TextSearch usa ILIKE
+     * para que la busqueda se comporte igual en los tres motores.
+     */
+    protected function likeOp(): string
+    {
+        return static::driver() === 'pgsql' ? 'ilike' : 'like';
     }
 
     /**

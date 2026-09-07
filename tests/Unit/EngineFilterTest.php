@@ -76,7 +76,11 @@ class EngineFilterTest extends TestCase
     {
         $query = Relevance::order(TestModel::query(), [3, 1, 2]);
 
-        $this->assertSame([3, 1, 2], $query->getBindings());
+        // En PostgreSQL los ids viajan como texto, porque la expresion castea
+        // los dos lados para que array_position encuentre su firma.
+        $esperado = static::driver() === 'pgsql' ? ['3', '1', '2'] : [3, 1, 2];
+
+        $this->assertSame($esperado, $query->getBindings());
     }
 
     #[Test]
@@ -84,7 +88,9 @@ class EngineFilterTest extends TestCase
     {
         $query = Relevance::order(TestModel::query(), [3, 3, null, '', 1, false, 2]);
 
-        $this->assertSame([3, 1, 2], $query->getBindings());
+        $esperado = static::driver() === 'pgsql' ? ['3', '1', '2'] : [3, 1, 2];
+
+        $this->assertSame($esperado, $query->getBindings());
     }
 
     #[Test]

@@ -56,7 +56,7 @@ class HasSearchSurgeTest extends TestCase
             ->toSql();
 
         $this->assertSqlHas('owner_id = ?', $sql);
-        $this->assertSqlHas('name like ?', $sql);
+        $this->assertSqlHas('name '.$this->likeOp().' ?', $sql);
     }
 
     #[Test]
