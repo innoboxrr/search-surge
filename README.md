@@ -6,7 +6,7 @@ Escribes filtros pequeños, uno por archivo. SearchSurge los encuentra, los
 ordena y los aplica. Funciona igual dentro de una app que dentro de un paquete,
 sin rutas a mano y sin configuración.
 
-**Laravel 11 · 12 · 13** — PHP 8.2+ · 329 tests
+**Laravel 11 · 12 · 13** — PHP 8.2+ · 381 tests · PHPStan sin errores
 
 ```bash
 composer require innoboxrr/search-surge
@@ -19,7 +19,9 @@ No hay que registrar nada: el ServiceProvider se autodescubre.
 ## Índice
 
 - [Uso en 30 segundos](#uso-en-30-segundos)
+- [Cero archivos: los filtros comunes](#cero-archivos-los-filtros-comunes)
 - [Dentro de un paquete](#dentro-de-un-paquete-de-laravel)
+- [Las piezas para escribir filtros](#las-piezas-para-escribir-filtros)
 - [La API](#la-api)
 - [Búsqueda de texto](#búsqueda-de-texto)
 - [Motores externos: Elastic, Algolia, Meilisearch](#motores-externos-elastic-algolia-meilisearch)
@@ -84,6 +86,40 @@ SearchSurge::get(User::class, $request->all());
 
 Eso es todo. La convención `App\Models\User` → `App\Models\Filters\User\*` se
 resuelve sola.
+
+---
+
+## Cero archivos: los filtros comunes
+
+Un modelo nuevo ya responde a lo de siempre sin que crees nada:
+
+```php
+SearchSurge::get(Producto::class, $request->all());
+```
+
+```
+?id=7                                ?ids=1,2,3            ?id_not=4
+?created_at_start_date=2026-01-01    ?updated_at_operator=<
+?orderBy=created_at&orderMode=desc   ?trashed=only
+?paginate=25&page=2
+```
+
+Son tres filtros genéricos que leen la configuración del propio modelo: la clave
+primaria de verdad (aunque se llame `codigo` y sea un uuid), los nombres reales
+de las columnas de timestamps, y si usa `SoftDeletes`.
+
+**No pisan a los tuyos.** Un común se descarta si el modelo ya tiene algo
+equivalente, por dos reglas: mismo nombre corto de clase, o claves declaradas que
+se solapan. Sin la segunda, un modelo con `CreationFilter` y `UpdatedFilter`
+propios recibiría además el `TimestampsFilter` y las condiciones de fecha se
+aplicarían dos veces.
+
+Y no entran donde no los has pedido: si pasas `$options['filters']`, esa lista es
+exhaustiva.
+
+```php
+'defaults' => [],   // desactivarlos del todo
+```
 
 ---
 
@@ -209,6 +245,80 @@ SearchSurge::cursor($model, $data, $options);   // Cursor PDO, una sola consulta
 
 `columns` **solo** se lee de `$options`, nunca de `$data`: aceptar nombres de
 columna desde la petición sería abrir la puerta a inyección.
+
+---
+
+## Las piezas para escribir filtros
+
+Un filtro es tuyo: decides qué columnas expones y cómo. Estas utilidades cubren
+las formas que se repiten, ya parametrizadas y con los casos raros resueltos.
+
+```php
+// Fechas: rangos y operadores, sin whereDate()
+DateFilterQuery::apply($query, $data, 'created_at');
+// ?created_at=2026-01-15&operator=>=   ?created_at_start_date=…&created_at_end_date=…
+
+// Números: mismo vocabulario
+NumericFilterQuery::apply($query, $data, 'precio');
+// ?precio_min=10&precio_max=100   ?precio=50&precio_operator=>
+
+// Conjuntos, con lista blanca
+SetFilterQuery::apply($query, $data, 'estado', ['borrador', 'publicado']);
+// ?estado=borrador,publicado   ?estado_not=archivado   ?estado=null
+
+// Relaciones
+RelationFilterQuery::exists($query, $data, 'comentarios');    // ?has_comentarios=1
+RelationFilterQuery::count($query, $data, 'comentarios');     // ?comentarios_count_min=5
+RelationFilterQuery::column($query, $data, 'autor', 'pais');  // ?autor_pais=MX
+
+// Ordenamiento
+Order::orderBy($query, $data, 'nombre');
+Order::orderByAny($query, $data, ['nombre', 'created_at']);   // ?orderBy=nombre,-created_at
+Order::fallback($query, $data, 'id', 'desc');
+```
+
+Cada una expone `keys()` para declarar el `$keys` del filtro sin escribirlas a
+mano:
+
+```php
+public static array $keys = [...NumericFilterQuery::keys('precio'), ...Order::KEYS];
+```
+
+Dos decisiones de comportamiento que conviene conocer:
+
+- **Un valor inválido no se ignora, no casa con nada.** `?precio=gratis` con
+  operador no filtra (no se puede interpretar), pero `?estado=inventado` contra
+  una lista blanca devuelve **cero filas**. Ignorar la condición devolvería la
+  tabla entera, que es lo contrario de lo que se pidió.
+- **Sin operador, un valor suelto no filtra.** `?precio=50` no dice si quieres
+  "igual", "al menos" o "como mucho".
+
+### Sobre `whereHas`
+
+Existe la creencia de que `whereHas` es lento y hay que sustituirlo por un
+`whereIn` con subconsulta. **Es falsa en MySQL 8.** Medido sobre 1.000.000 de
+posts y 20.000 autores, "posts de autores de MX" (200.000 filas):
+
+| | Contar | Traer una página |
+|---|---|---|
+| `whereHas` → EXISTS | 112,6 ms | 686 ms |
+| `whereIn` subconsulta | 74,2 ms | 721 ms |
+| `JOIN` | 90,1 ms | 682 ms |
+
+Los tres producen **el mismo plan**: el optimizador los unifica. Por eso
+`RelationFilterQuery` no trae ningún "selector inteligente de estrategia": sería
+complejidad a cambio de nada.
+
+Lo que sí cambia las cosas, por un factor de 27, es **no cruzar la relación
+cuando no hace falta**:
+
+| | Tiempo |
+|---|---|
+| `WHERE author_id = 7` | **0,3 ms** |
+| `whereHas('author', id = 7)` | 8,2 ms |
+
+Si la clave foránea está en tu tabla, un `SetFilterQuery` sobre ella basta. Usa
+las relaciones para columnas que solo viven al otro lado.
 
 ---
 
@@ -536,6 +646,10 @@ php artisan search-surge:clear                            # borrarlo
 
 `--type` acepta `basic`, `text`, `date`, `engine` y `managed`.
 
+```bash
+composer check     # estilo + analisis estatico + tests, lo mismo que CI
+```
+
 ---
 
 ## Configuración
@@ -590,10 +704,11 @@ mete `search-surge:cache` en el deploy, pasa los exports a `lazy()` y pásale
 
 ```bash
 composer install
-composer test
+composer check     # estilo + analisis estatico + tests
 ```
 
-329 tests sobre Laravel 11, 12 y 13. Incluyen inyección en todas las superficies
+381 tests sobre Laravel 11, 12 y 13, PHPStan (con larastan) sin errores y Pint
+sobre todo el codigo. CI corre las tres cosas. Incluyen inyección en todas las superficies
 de entrada, filtros que devuelven basura o lanzan, manifiestos corruptos,
 paginación con empates y un recorrido completo por HTTP.
 
