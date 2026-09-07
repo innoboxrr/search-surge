@@ -3,6 +3,7 @@
 namespace Innoboxrr\SearchSurge\Tests;
 
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 use Innoboxrr\SearchSurge\Providers\SearchSurgeServiceProvider;
@@ -31,6 +32,12 @@ abstract class TestCase extends \Orchestra\Testbench\TestCase
 
     protected function createSchema(): void
     {
+        // SQLite en memoria nace vacio en cada test, pero MySQL y PostgreSQL
+        // conservan las tablas entre uno y otro.
+        foreach (['test_models', 'test_users', 'test_authors', 'test_codigos', 'solo_fechas'] as $table) {
+            Schema::dropIfExists($table);
+        }
+
         Schema::create('test_models', function (Blueprint $table): void {
             $table->id();
             $table->string('name')->nullable();
@@ -63,14 +70,134 @@ abstract class TestCase extends \Orchestra\Testbench\TestCase
     protected function defineEnvironment($app): void
     {
         $app['config']->set('database.default', 'testing');
-        $app['config']->set('database.connections.testing', [
-            'driver' => 'sqlite',
-            'database' => ':memory:',
-            'prefix' => '',
-        ]);
+        $app['config']->set('database.connections.testing', static::connectionConfig());
 
         // En los tests queremos ver los filtros nuevos al instante.
         $app['config']->set('search-surge.cache.enabled', false);
+    }
+
+    /**
+     * La conexión de pruebas, sacada del entorno.
+     *
+     * Por defecto SQLite en memoria, que es lo que hace la suite rápida. Pero el
+     * paquete adapta el SQL a cada motor —ILIKE en PostgreSQL, FIELD() en MySQL,
+     * tres sintaxis distintas de EXPLAIN— y eso no se puede verificar sobre un
+     * solo driver. Con DB_CONNECTION la misma suite corre contra los tres.
+     *
+     * @return array<string, mixed>
+     */
+    protected static function connectionConfig(): array
+    {
+        return match (static::driver()) {
+            'mysql', 'mariadb' => [
+                'driver' => 'mysql',
+                'host' => env('DB_HOST', '127.0.0.1'),
+                'port' => env('DB_PORT', '3306'),
+                'database' => env('DB_DATABASE', 'surge_test'),
+                'username' => env('DB_USERNAME', 'root'),
+                'password' => env('DB_PASSWORD', ''),
+                'charset' => 'utf8mb4',
+                'collation' => 'utf8mb4_unicode_ci',
+                'prefix' => '',
+            ],
+            'pgsql' => [
+                'driver' => 'pgsql',
+                'host' => env('DB_HOST', '127.0.0.1'),
+                'port' => env('DB_PORT', '5432'),
+                'database' => env('DB_DATABASE', 'surge_test'),
+                'username' => env('DB_USERNAME', 'postgres'),
+                'password' => env('DB_PASSWORD', ''),
+                'charset' => 'utf8',
+                'prefix' => '',
+            ],
+            default => [
+                'driver' => 'sqlite',
+                'database' => ':memory:',
+                'prefix' => '',
+            ],
+        };
+    }
+
+    /**
+     * El motor contra el que corre la suite.
+     */
+    protected static function driver(): string
+    {
+        $driver = env('DB_CONNECTION', 'sqlite');
+
+        return in_array($driver, ['mysql', 'mariadb', 'pgsql'], true) ? $driver : 'sqlite';
+    }
+
+    /**
+     * ¿Estamos sobre SQLite? Lo usan las pruebas que afirman sobre la forma
+     * exacta del SQL, que cambia de un motor a otro (comillas dobles frente a
+     * acentos graves) sin que eso signifique nada.
+     */
+    protected function onSqlite(): bool
+    {
+        return static::driver() === 'sqlite';
+    }
+
+    protected function skipUnlessSqlite(): void
+    {
+        if (! $this->onSqlite()) {
+            $this->markTestSkipped('Afirma sobre la forma del SQL, que depende del motor.');
+        }
+    }
+
+    protected function skipOnSqlite(string $motivo): void
+    {
+        if ($this->onSqlite()) {
+            $this->markTestSkipped($motivo);
+        }
+    }
+
+    /* -----------------------------------------------------------------
+     | Afirmaciones sobre SQL, independientes del motor
+     | ----------------------------------------------------------------- */
+
+    /**
+     * El SQL sin el entrecomillado de identificadores.
+     *
+     * Cada motor cita a su manera: `"col"` en SQLite y PostgreSQL, `` `col` ``
+     * en MySQL. Esa diferencia no significa nada, pero basta para que la misma
+     * afirmacion pase en un driver y falle en otro. Quitando las comillas, la
+     * prueba dice lo que de verdad quiere decir —que la condicion esta y sobre
+     * que columna— y vale para los tres.
+     *
+     * @param  Builder<Model>|string  $query
+     */
+    protected function sqlOf(Builder|string $query): string
+    {
+        $sql = $query instanceof Builder ? $query->toSql() : $query;
+
+        return str_replace(['`', '"'], '', $sql);
+    }
+
+    /**
+     * @param  Builder<Model>|string  $query
+     */
+    protected function assertSqlHas(string $needle, Builder|string $query, string $message = ''): void
+    {
+        $this->assertStringContainsString($needle, $this->sqlOf($query), $message);
+    }
+
+    /**
+     * @param  Builder<Model>|string  $query
+     */
+    protected function assertSqlMissing(string $needle, Builder|string $query, string $message = ''): void
+    {
+        $this->assertStringNotContainsString($needle, $this->sqlOf($query), $message);
+    }
+
+    /**
+     * Cuantas veces aparece un fragmento en el SQL.
+     *
+     * @param  Builder<Model>|string  $query
+     */
+    protected function sqlCount(string $needle, Builder|string $query): int
+    {
+        return substr_count($this->sqlOf($query), $needle);
     }
 
     /**
