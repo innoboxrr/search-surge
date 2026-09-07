@@ -3,6 +3,69 @@
 Todas las modificaciones notables del proyecto se documentan aquí.
 Este proyecto sigue [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.2]
+
+### Added
+
+- **El camino por defecto de `EngineFilter` esta probado.** `ids()` delega en
+  Laravel Scout, y de ese metodo solo se probaba hasta ahora la rama de error.
+  La via que el README documenta como "no hace falta nada mas" -la puerta de
+  entrada a Elasticsearch, Algolia, Meilisearch y Typesense- no la habia
+  ejecutado nunca nadie. Se anade Scout como dependencia de desarrollo y ocho
+  pruebas con el driver `collection`, que resuelve la busqueda con el propio
+  Eloquent: se verifica el contrato -que se llama a search(), que se respeta el
+  limite, que los ids acotan la consulta y mandan en el orden, que los filtros
+  SQL siguen recortando y que la autorizacion sigue aplicandose- sin levantar
+  ningun motor.
+- Pruebas de las ramas que quedaban sin recorrer: los "no hay nada que hacer"
+  de los comandos, los limites de la paginacion y los caminos de degradacion.
+
+### Changed
+
+- `.gitattributes` deja fuera del archivo de distribucion los tests, la
+  configuracion de CI y las herramientas de desarrollo. Pesaban mas que el
+  propio codigo (293 KB frente a 272 KB) y acababan igualmente en el vendor/ de
+  quien instala el paquete.
+
+Cobertura: 490 pruebas, 91,7% de lineas en la ejecucion de SQLite y 95,0%
+combinando SQLite y MySQL. Lo que falta en cada una son las ramas del otro
+motor, que se cubren en su propio job.
+
+## [3.0.1]
+
+Publicada sin entrada propia; se documenta aqui a posteriori.
+
+### Fixed
+
+- **El analizador estaba ciego en MySQL.** Sus expresiones regulares solo
+  contemplaban el entrecomillado con comillas dobles, asi que en el motor mas
+  usado no detectaba ni el OR de LIKE entre columnas ni las funciones
+  envolviendo una columna.
+- **Y ciego en PostgreSQL**, que no envuelve la columna en una funcion sino que
+  la castea (`"created_at"::date`). El efecto sobre el indice es el mismo.
+- **Falso positivo en MySQL**: cuando el motor resuelve la consulta durante la
+  optimizacion -"no matching row in const table"- no llega a leer la tabla. El
+  analizador lo reportaba como "no usa ningun indice", que es lo contrario.
+- **El orden por relevancia reventaba en PostgreSQL** con
+  `array_position(text[], bigint) does not exist`. PostgreSQL deduce el tipo del
+  `ARRAY[...]` al analizar la consulta, antes de saber que le van a llegar en
+  los parametros. Ahora se castean los dos lados a texto.
+- **El generador escribia en cualquier sitio** con una clase sin namespace, y el
+  resultado dependia del separador de rutas del sistema.
+- Un caracter de control invisible (0x08 donde debia ir ``) desactivaba la
+  normalizacion del SQL en las pruebas: la expresion compilaba y no casaba
+  nunca.
+
+### Changed
+
+- **Nada se publica sin pasar los tests.** El workflow de versionado colgaba de
+  `push`, asi que corria en paralelo con la suite: un commit roto se etiquetaba
+  igual y Packagist lo publicaba. Ahora cuelga del resultado de los tests y hace
+  checkout del commit exacto que paso.
+- CI corre la suite sobre **SQLite, MySQL y PostgreSQL**, con un minimo de
+  cobertura del 88%. Los cinco fallos de arriba salieron de ahi: ninguno era
+  visible sobre un solo motor.
+
 ## [3.0.0]
 
 Compatibilidad con Laravel 13, descubrimiento dinámico de filtros, consultas

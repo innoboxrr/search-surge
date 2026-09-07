@@ -8,7 +8,7 @@ sin rutas a mano y sin configuración.
 
 **Laravel 12 · 13** · PHP 8.2+ · MySQL · PostgreSQL · SQLite
 
-464 tests · 91% de cobertura · PHPStan sin errores · nada se publica sin pasar por ahí
+490 tests · 95% de cobertura · PHPStan sin errores · nada se publica sin pasar por ahí
 
 ```bash
 composer require innoboxrr/search-surge
@@ -951,9 +951,11 @@ composer install
 composer check     # estilo + analisis estatico + tests
 ```
 
-464 tests sobre SQLite, MySQL y PostgreSQL, con 4 combinaciones de PHP y
-Laravel. 91% de cobertura de lineas, PHPStan sin errores y Pint sobre todo el
-codigo.
+490 tests sobre SQLite, MySQL y PostgreSQL, con 4 combinaciones de PHP y
+Laravel. 95% de cobertura de lineas combinando motores (91,7% en la ejecucion de
+SQLite, que es la que mide CI: lo que falta ahi son las ramas de MySQL y
+PostgreSQL, que cubren sus propios jobs). PHPStan sin errores y Pint sobre todo
+el codigo.
 
 Ver [Contribuir](#contribuir) para el detalle. Incluyen inyección en todas las superficies
 de entrada, filtros que devuelven basura o lanzan, manifiestos corruptos,
