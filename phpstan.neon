@@ -1,0 +1,38 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    # Nivel 5: es el que caza los errores reales (metodos inexistentes,
+    # comparaciones imposibles, callables mal tipados). El 6 solo anade
+    # "faltan @param" sobre los $data que aceptan DataContainer u objeto
+    # cualquiera por compatibilidad con v2, y eso es ruido, no calidad.
+    level: 5
+    paths:
+        - src
+    treatPhpDocTypesAsCertain: false
+
+    ignoreErrors:
+        # withTrashed/onlyTrashed las anade el trait SoftDeletes al scope del
+        # modelo, no al Builder. El filtro ya comprueba que el modelo lo use
+        # antes de llamarlas.
+        -
+            identifier: method.notFound
+            path: src/Search/Filters/Common/SoftDeletesFilter.php
+
+        # $model::search() la aporta el trait Searchable de Scout, que es una
+        # dependencia opcional. Se comprueba con method_exists antes de llamar.
+        -
+            identifier: method.staticCall
+            path: src/Search/Filters/EngineFilter.php
+
+        # El trait lo usan los modelos de quien instala el paquete, no src/.
+        -
+            identifier: trait.unused
+            path: src/Search/Concerns/HasSearchSurge.php
+
+        # getRegisteredLoaders() no existe en Composer anterior a 1.10. PHPStan
+        # solo ve la version instalada aqui; la comprobacion protege a quien
+        # tenga una mas vieja.
+        -
+            identifier: function.alreadyNarrowedType
+            path: src/Search/Support/ComposerLocator.php

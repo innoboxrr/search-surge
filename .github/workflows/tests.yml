@@ -6,8 +6,29 @@ on:
     pull_request:
 
 jobs:
+    calidad:
+        runs-on: ubuntu-latest
+        name: Estilo y analisis estatico
+
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: shivammathur/setup-php@v2
+              with:
+                  php-version: '8.3'
+                  coverage: none
+
+            - run: composer update --prefer-dist --no-interaction --no-progress
+
+            - name: Estilo de codigo
+              run: vendor/bin/pint --test
+
+            - name: Analisis estatico
+              run: vendor/bin/phpstan analyse --no-progress
+
     test:
         runs-on: ubuntu-latest
+        needs: calidad
 
         strategy:
             fail-fast: false
@@ -29,22 +50,20 @@ jobs:
         name: PHP ${{ matrix.php }} · Laravel ${{ matrix.laravel }}
 
         steps:
-            - name: Checkout code
-              uses: actions/checkout@v4
+            - uses: actions/checkout@v4
 
-            - name: Setup PHP
-              uses: shivammathur/setup-php@v2
+            - uses: shivammathur/setup-php@v2
               with:
                   php-version: ${{ matrix.php }}
                   extensions: pdo, pdo_sqlite, sqlite3, mbstring
                   coverage: none
 
-            - name: Install dependencies
+            - name: Instalar dependencias
               run: |
                   composer require --no-update --dev \
                       "laravel/framework:${{ matrix.laravel }}" \
                       "orchestra/testbench:${{ matrix.testbench }}"
                   composer update --prefer-dist --no-interaction --no-progress
 
-            - name: Run tests
+            - name: Tests
               run: vendor/bin/phpunit --no-coverage
