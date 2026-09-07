@@ -3,24 +3,21 @@
 namespace Innoboxrr\SearchSurge\Tests\Models\Filters\TestModel;
 
 use Illuminate\Database\Eloquent\Builder;
+use Innoboxrr\SearchSurge\Search\Support\DataContainer;
 use Innoboxrr\SearchSurge\Search\Utils\Order;
 
 class IdFilter
 {
-
-    public static function apply(Builder $query, object $data)
+    public static function apply(Builder $query, DataContainer $data)
     {
-
-        if ($data->id) {
-
-            $query->where('id', $data->id);
-
+        if ($data->filled('id')) {
+            $query->where('id', $data->integer('id'));
         }
 
-        $query = Order::orderBy($query, $data, 'id');
+        if ($data->filled('ids')) {
+            $query->whereIn('id', $data->array('ids'));
+        }
 
-        return $query;
-
+        return Order::orderBy($query, $data, 'id');
     }
-
 }
