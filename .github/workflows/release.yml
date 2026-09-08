@@ -1,0 +1,19 @@
+name: Release
+
+# Se dispara solo si los tests pasaron. La version la declara el archivo
+# VERSION y el tag se deriva de ella; Packagist publica al recibir el tag.
+#
+# Sustituye a bump-patch.yml, que si esperaba a los tests pero adivinaba la
+# version del ultimo tag: para publicar un minor habia que escribir #minor en
+# el mensaje del commit, y un `#major` mencionado de pasada publicaba un mayor
+# sin quererlo.
+on:
+    workflow_run:
+        workflows: ['Tests']
+        types: [completed]
+        branches: [master]
+    workflow_dispatch:
+
+jobs:
+    release:
+        uses: innoboxrr/.github/.github/workflows/php-release.yml@main
