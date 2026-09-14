@@ -973,3 +973,7 @@ MIT. Ver [LICENSE.md](LICENSE.md).
 
 Si el paquete te sirve, puedes apoyar el desarrollo
 [aquí](https://donate.stripe.com/9AQ8yZc4x3DifCw9AC).
+
+## Documentación / Documentation
+
+Documentación completa del ecosistema, en español y en inglés / Full ecosystem documentation, in Spanish and English: <https://innoboxrr.github.io/docs/paquetes/support-traits-search>
